@@ -1,0 +1,7 @@
+[package]
+name = "egyptian"
+version = "0.1.0"
+authors = ["cophares"]
+
+[dependencies]
+rand = ">= 0.4.2"
