@@ -18,6 +18,7 @@ enum Suit {
     Spades,
     Clubs,
 }
+use Suit::*;
 
 // enum for card value
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,6 +29,7 @@ enum Rank {
     King,
     Ace,
 }
+use Rank::*;
 
 // Struct for playing card
 #[derive(Debug, Clone, Copy)]
@@ -56,68 +58,25 @@ impl Card {
 // Implements display for Card struct
 impl std::fmt::Display for Card {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?} of {:?}", self.rank, self.suit)
+        match self.rank {
+            Num(n) => write!(f, "{} of {:?}", n, self.suit),
+            _ => write!(f, "{:?} of {:?}", self.rank, self.suit),
+        }
     }
 }
 
+// Build a fresh deck.
 fn make_deck() -> Vec<Card> {
-    vec![
-        Card::new(Rank::Num(2),  Suit::Clubs),
-        Card::new(Rank::Num(3),  Suit::Clubs),
-        Card::new(Rank::Num(4),  Suit::Clubs),
-        Card::new(Rank::Num(5),  Suit::Clubs),
-        Card::new(Rank::Num(6),  Suit::Clubs),
-        Card::new(Rank::Num(7),  Suit::Clubs),
-        Card::new(Rank::Num(8),  Suit::Clubs),
-        Card::new(Rank::Num(9),  Suit::Clubs),
-        Card::new(Rank::Num(10), Suit::Clubs),
-        Card::new(Rank::Jack,    Suit::Clubs),
-        Card::new(Rank::Queen,   Suit::Clubs),
-        Card::new(Rank::King,    Suit::Clubs),
-        Card::new(Rank::Ace,     Suit::Clubs),
-        
-        Card::new(Rank::Num(2),  Suit::Spades),
-        Card::new(Rank::Num(3),  Suit::Spades),
-        Card::new(Rank::Num(4),  Suit::Spades),
-        Card::new(Rank::Num(5),  Suit::Spades),
-        Card::new(Rank::Num(6),  Suit::Spades),
-        Card::new(Rank::Num(7),  Suit::Spades),
-        Card::new(Rank::Num(8),  Suit::Spades),
-        Card::new(Rank::Num(9),  Suit::Spades),
-        Card::new(Rank::Num(10), Suit::Spades),
-        Card::new(Rank::Jack,    Suit::Spades),
-        Card::new(Rank::Queen,   Suit::Spades),
-        Card::new(Rank::King,    Suit::Spades),
-        Card::new(Rank::Ace,     Suit::Spades),
-        
-        Card::new(Rank::Num(2),  Suit::Diamonds),
-        Card::new(Rank::Num(3),  Suit::Diamonds),
-        Card::new(Rank::Num(4),  Suit::Diamonds),
-        Card::new(Rank::Num(5),  Suit::Diamonds),
-        Card::new(Rank::Num(6),  Suit::Diamonds),
-        Card::new(Rank::Num(7),  Suit::Diamonds),
-        Card::new(Rank::Num(8),  Suit::Diamonds),
-        Card::new(Rank::Num(9),  Suit::Diamonds),
-        Card::new(Rank::Num(10), Suit::Diamonds),
-        Card::new(Rank::Jack,    Suit::Diamonds),
-        Card::new(Rank::Queen,   Suit::Diamonds),
-        Card::new(Rank::King,    Suit::Diamonds),
-        Card::new(Rank::Ace,     Suit::Diamonds),
-
-        Card::new(Rank::Num(2),  Suit::Hearts),
-        Card::new(Rank::Num(3),  Suit::Hearts),
-        Card::new(Rank::Num(4),  Suit::Hearts),
-        Card::new(Rank::Num(5),  Suit::Hearts),
-        Card::new(Rank::Num(6),  Suit::Hearts),
-        Card::new(Rank::Num(7),  Suit::Hearts),
-        Card::new(Rank::Num(8),  Suit::Hearts),
-        Card::new(Rank::Num(9),  Suit::Hearts),
-        Card::new(Rank::Num(10), Suit::Hearts),
-        Card::new(Rank::Jack,    Suit::Hearts),
-        Card::new(Rank::Queen,   Suit::Hearts),
-        Card::new(Rank::King,    Suit::Hearts),
-        Card::new(Rank::Ace,     Suit::Hearts),
-    ]
+    let mut deck = Vec::new();
+    for suit in [Clubs, Diamonds, Hearts, Spades].iter() {
+        for number in 2..11 {
+            deck.push(Card::new(Num(number), *suit));
+        }
+        for face in [Jack, Queen, King, Ace].iter() {
+            deck.push(Card::new(*face, *suit));
+        }
+    }
+    deck
 }
 
 /// Shuffles the deck of cards
@@ -127,34 +86,27 @@ fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
     deck
 }
 
-/// Checks if cards have same rank
-fn is_equal(left: &[Card], right: &[Card]) -> bool {
-    if (&left[0..1]).eq(&right[0..1]) {
-        return true;
-    }
-    false
+/// Cards have same rank.
+fn is_equal(left: Card, right: Card) -> bool {
+    left.rank == right.rank
 }
 
 /// Top and second card have same rank
 fn is_pair(pile: &Vec<Card>) -> bool {
-    let (left, right) = pile.split_at(1);
-    is_equal(&left[0..1], &right[0..1])
+    is_equal(pile[0], pile[1])
 }
 
 /// Top and third card have same rank
 fn is_sandwich(pile: &Vec<Card>) -> bool {
-    let (left, right) = pile.split_at(2);
-    is_equal(&left[0..1], &right[0..1])
+    is_equal(pile[0], pile[2])
 }
 
 fn main() {
-    // bind needs an address
     let mut deck: Vec<Card> = shuffle_deck(make_deck());
-    let mut pile: Vec<Card> = vec![];
+    let mut pile: Vec<Card> = Vec::new();
 
-    //for _ in 0..deck.len() {
     for _ in 0..11 {
-        pile.push(deck.remove(1));
+        pile.push(deck.pop().unwrap());
     }
 
     if is_pair(&pile) {
@@ -162,20 +114,20 @@ fn main() {
         for i in &pile[0..2] {
             println!("{}", i);
         }
-        println!("");
+        println!();
     }
     else if is_sandwich(&pile) {
         println!("There is a sandwich:");
         for i in &pile[0..3] {
             println!("{}", i);
         }
-        println!("");
+        println!();
     }
     else {
         println!("There is NO pair or sandwich");
         for i in &pile[0..3] {
             println!("{}", i);
         }
-        println!("");
+        println!();
     }
 }
