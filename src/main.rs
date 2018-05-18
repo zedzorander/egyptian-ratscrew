@@ -17,6 +17,7 @@ enum Suit {
     Spades,
     Clubs,
 }
+use Suit::*;
 
 use Suit::*;
 
@@ -29,6 +30,7 @@ enum Rank {
     King,
     Ace,
 }
+use Rank::*;
 
 use Rank::*;
 
@@ -98,20 +100,16 @@ fn is_sandwich(pile: &Vec<Card>) -> bool {
     pile[0] == pile[2]
 }
 
+const SIX: Card = Card{ rank: Num(6), suit: Clubs };
+const NINE: Card = Card{ rank: Num(9), suit: Clubs };
+
 /// Checks if left and right cards form (6, 9) pairing
 fn is_sixty_nine_match(left: Card, right: Card) -> bool {
-    let six = Card::new(Num(6), Clubs);
-    let nine = Card::new(Num(9), Clubs);
-
-    if left == six {
-        if right == nine {
-            return true;
-        }
+    if left == SIX && right == NINE {
+        return true;
     }
-    else if right == six {
-        if left == nine {
-            return true;
-        }
+    if right == SIX && left == NINE {
+        return true;
     }
     false
 }
