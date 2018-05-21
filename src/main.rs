@@ -9,20 +9,22 @@
 
 extern crate rand;
 use rand::Rng;
+//use std::iter::FromIterator;
+//use std::cmp::Ordering;
+
 /// Suit of the card
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Suit {
     Hearts,
     Diamonds,
     Spades,
     Clubs,
 }
-use Suit::*;
 
 use Suit::*;
 
 /// enum for card value
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Rank {
     Num(u32),
     Jack,
@@ -30,21 +32,39 @@ enum Rank {
     King,
     Ace,
 }
-use Rank::*;
+
+impl Rank {
+    fn value(self)-> u32 {
+        match self {
+            Num(n) => n,
+            Jack => 11,
+            Queen => 12,
+            King => 13,
+            Ace => 1,
+        }
+    }
+}
 
 use Rank::*;
 
 /// Struct for playing card
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq)]
 struct Card {
     rank: Rank,
     suit: Suit,
 }
 
 /// Comparison for cards by rank, ignoring suit
-impl PartialEq for Card {
+impl PartialEq<Card> for Card {
     fn eq(&self, other: &Card) -> bool {
         self.rank == other.rank
+    }
+}
+
+/// Comparison for cards to a rank value
+impl PartialEq<u32> for Card {
+    fn eq(&self, other: &u32) -> bool {
+        self.rank.value() == *other
     }
 }
 
@@ -100,15 +120,12 @@ fn is_sandwich(pile: &Vec<Card>) -> bool {
     pile[0] == pile[2]
 }
 
-const SIX: Card = Card{ rank: Num(6), suit: Clubs };
-const NINE: Card = Card{ rank: Num(9), suit: Clubs };
-
 /// Checks if left and right cards form (6, 9) pairing
 fn is_sixty_nine_match(left: Card, right: Card) -> bool {
-    if left == SIX && right == NINE {
+    if left == 6 && right == 9 {
         return true;
     }
-    if right == SIX && left == NINE {
+    if right == 6 && left == 9 {
         return true;
     }
     false
@@ -124,17 +141,16 @@ fn is_sixty_nine_sandwich(pile: &Vec<Card>) -> bool {
     is_sixty_nine_match(pile[0], pile[2])
 }
 
+/*
+/// Top three cards form a run in any order
+fn is_run(pile: &Vec<Card>) -> bool {
+    let mut temp: Vec<Card> = Vec::from_iter(pile[0..3].iter().cloned());    
+    //temp.sort();
+    
+}
+*/
+
 fn test_pile(pile: Vec<Card>) {
-    // temp pile to test is_sixty_nine functon
-    let mut temp: Vec<Card> = Vec::new();
-    temp.push(Card::new(Num(6), Hearts));
-    temp.push(Card::new(Num(9), Diamonds));
-
-    let mut temp2: Vec<Card> = Vec::new();
-    temp2.push(Card::new(Num(6), Hearts));
-    temp2.push(Card::new(Jack, Spades));
-    temp2.push(Card::new(Num(9), Diamonds));
-
     if is_pair(&pile) {
         println!("There is a pair:");
         for i in &pile[0..2] {
@@ -149,16 +165,16 @@ fn test_pile(pile: Vec<Card>) {
         }
         println!();
     }
-    if is_sixty_nine(&temp) {
+    if is_sixty_nine(&pile) {
         println!("There is a sixty nine:");
-        for i in &temp[0..2] {
+        for i in &pile[0..2] {
             println!("{}", i);
         }
         println!();
     }
-    if is_sixty_nine_sandwich(&temp2) {
+    if is_sixty_nine_sandwich(&pile) {
         println!("There is a sixty nine sandwich:");
-        for i in &temp2[0..3] {
+        for i in &pile[0..3] {
             println!("{}", i);
         }
         println!();
