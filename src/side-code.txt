@@ -46,3 +46,42 @@ fn handle_client(stream::TcpStream) {
         handle_client(stream?);
     }*/
 
+// Trying to implement order on first three elements of pile
+//use std::iter::FromIterator;
+//use std::cmp::Ordering;
+
+/*
+impl Ord for Rank {
+    fn cmp(&self, other: &Rank) -> Ordering {
+        self.cmp(&other)
+    }
+}
+
+impl PartialOrd for Rank {
+    fn partial_cmp(&self, other: &Rank) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Rank {
+    fn eq(&self, other: &Rank) -> bool {
+        self == other
+    }
+}
+*/
+
+/*
+impl Ord for Card {
+    fn cmp(&self, other: &Card) -> Ordering {
+        self.rank.cmp(&other.rank)
+    }
+}
+
+impl PartialOrd for Card {
+    fn partial_cmp(&self, other: &Card) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+*/
+
+

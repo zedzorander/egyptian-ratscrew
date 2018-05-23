@@ -5,12 +5,9 @@
 
 // Code to create a shuffled deck of cards borrowed and modified from
 // http://cultofmetatron.io/2017/03/21/learning-rust-with-blackjack-part-1/
-// version notes: added function to determine a sixty nine pair
 
 extern crate rand;
 use rand::Rng;
-//use std::iter::FromIterator;
-//use std::cmp::Ordering;
 
 /// Suit of the card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +30,7 @@ enum Rank {
     Ace,
 }
 
+/// Gives the Rank enum a value for ordering
 impl Rank {
     fn value(self)-> u32 {
         match self {
@@ -110,6 +108,8 @@ fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
     deck
 }
 
+/// COMBINATION TESTS BELOW HERE
+
 /// Top and second card have same rank
 fn is_pair(pile: &Vec<Card>) -> bool {
     pile[0] == pile[1]
@@ -141,15 +141,61 @@ fn is_sixty_nine_sandwich(pile: &Vec<Card>) -> bool {
     is_sixty_nine_match(pile[0], pile[2])
 }
 
-/*
+/// Determines if any of the three cards form a pair
+/// returns true if their is a pair
+fn find_pair_run(left: Card, middle: Card, right: Card) -> bool {
+    if left == middle || left == right || middle == right {
+        return true;
+    }
+    false
+}
+
+/// Determines if the ranks of cards differ by one
+fn find_abs(left: Card, right: Card) -> bool {
+    let value = left.rank.value() as i32 - right.rank.value() as i32;
+    if value.abs() == 1 {
+        return true;
+    }
+    false
+}
+
 /// Top three cards form a run in any order
 fn is_run(pile: &Vec<Card>) -> bool {
-    let mut temp: Vec<Card> = Vec::from_iter(pile[0..3].iter().cloned());    
-    //temp.sort();
-    
-}
-*/
+    let left = pile[0];
+    let middle = pile[1];
+    let right = pile[2];
 
+    // If no cards have equal rank, search for a run
+    if !find_pair_run(left, middle, right) {
+        let one_two = find_abs(left, middle);
+        let one_three = find_abs(left, right);
+        let two_three = find_abs(middle, right);
+
+        // If the first and second cards differ by one rank
+        // and the second and third cards differ by one rank
+        // (e.g. 3->4->5)
+        if one_two && two_three  {
+            return true;
+        }
+
+        // If the first and third cards differ by one rank
+        // and the second and third cards differ by one rank
+        // (e.g. 3->5->4)
+        if one_three && two_three {
+            return true;
+        }
+
+        // If the first and second cards differ by one rank
+        // and the first and third card differ by one rank
+        // (e.g. 4->5->3)
+        if one_two && one_three {
+            return true;
+        }
+    }
+    false
+}
+
+/// Tests for different combinations
 fn test_pile(pile: Vec<Card>) {
     if is_pair(&pile) {
         println!("There is a pair:");
@@ -174,6 +220,13 @@ fn test_pile(pile: Vec<Card>) {
     }
     if is_sixty_nine_sandwich(&pile) {
         println!("There is a sixty nine sandwich:");
+        for i in &pile[0..3] {
+            println!("{}", i);
+        }
+        println!();
+    }
+    if is_run(&pile) {
+        println!("There is a run:");
         for i in &pile[0..3] {
             println!("{}", i);
         }
