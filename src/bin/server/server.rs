@@ -5,10 +5,12 @@
 
 extern crate card;
 extern crate rand;
+extern crate serde;
 use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
 use std::net::{TcpListener, SocketAddr};//, TcpStream};
 use std::io::{Write};//, BufRead};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {

@@ -22,3 +22,4 @@ path = "src/bin/card.rs"
 [dependencies]
 rand = ">= 0.4.2"
 rustfmt = ">= 0.10.0"
+serde = "1.0.63"

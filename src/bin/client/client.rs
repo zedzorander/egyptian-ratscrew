@@ -1,5 +1,9 @@
+extern crate card;
+extern crate serde;
+use card::{Card, Rank::*, Suit::*};
 use std::net::TcpStream;
 use std::io::Read;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 fn main() {
     if let Ok(mut stream) = TcpStream::connect("127.0.0.1:24794") {
