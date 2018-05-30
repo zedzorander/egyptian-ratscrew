@@ -1,51 +1,56 @@
 // crate to create server
 //use std::net::{TcpListener, TcpStream};
+//use std::io::Write;
 
-// for use in main function
-// let listener = TcpListener::bind().unwrap();
+    //, stream: TcpStream) -> bool {
+    // tests for a pair
 
-// try to display Rank enum
-/*
-impl std::fmt::Display for Rank {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let printable = match *self {
-            Rank::Num(u32) => Rank::Num(u32).to_string(),
-            Rank::Jack => "Jack".to_string(),
-            Rank::Queen => "Queen".to_string(),
-            Rank::King => "King".to_string(),
-            Rank::Ace => "Ace".to_string(),
-        };
-        write!(f, "{}", printable)
-    }
-}
-*/
+        /*stream.write(b"There is a pair:");
+        for i in &pile[0..2] {
+            stream.write(format!("{}", i));
+        }
+        stream.write(b"");
+        */
 
 // Handles data sent from clients
-fn handle_client(stream::TcpStream) {
-
+/*fn handle_client(pile: &Vec<Card>, stream: TcpStream) -> TcpStream {
+    if !test_pile(*pile, stream) {
+        // do something
+        stream.write(b"");
+    }
+    stream
 }
-*/
 
-// unimplemented function calls
-    /*
-    if is_sixty_nine(&pile) {
-        println!("There is a sixty-nine");
-        for i in &pile {
-            println!("{}", i);
-        }
-    }
-    else {
-        println!("There is NO sixty-nine");
-        for i in &pile {
-            println!("{}", i);
-        }
-    }
-    */
+    // for use in main function
+    //let listener = TcpListener::bind("127.0.0.1:8").unwrap();
 
     /*for stream in listener.incoming() {
-        handle_client(stream?);
+        let stream = stream.unwrap();
+
+        println!("Connection established!");
+        
+        //handle_client(&pile, stream);
+        
+        // examples from
+        // https://stackoverflow.com/questions/17445485/example-tcp-server-written-in-rust
+        /*
+        match stream {
+            Err(e) => warn!("Accept error {}", e),
+            Ok(stream) => {
+                spawn(proc() {
+                    debug!("{}", handle_client(stream));
+                })
+            }
+        }
+        */
+        /*thread::spawn(|| {
+            let mut stream = stream.unwrap();
+            });
+        */
     }*/
 
+
+*/
 // Trying to implement order on first three elements of pile
 //use std::iter::FromIterator;
 //use std::cmp::Ordering;

@@ -2,7 +2,7 @@
 
 Copyright (c) 2018 Cole Phares
 
-This program implements a client-server model of the card game Egyptian Ratscrew.
+This program implements a command line client-server model of the card game Egyptian Ratscrew.
 
 ### License
 
