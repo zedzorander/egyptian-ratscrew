@@ -3,90 +3,12 @@
 // Last Modified: 5/22/2018
 // Server side for online card game Egyptian RatScrew
 
-// Code to create a shuffled deck of cards borrowed and modified from
-// http://cultofmetatron.io/2017/03/21/learning-rust-with-blackjack-part-1/
-
+extern crate card;
 extern crate rand;
+use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::io::{BufRead, Write};
-
-/// Suit of the card
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Suit {
-    Hearts,
-    Diamonds,
-    Spades,
-    Clubs,
-}
-
-use Suit::*;
-
-/// enum for card value
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Rank {
-    Num(u32),
-    Jack,
-    Queen,
-    King,
-    Ace,
-}
-
-/// Gives the Rank enum a value for ordering
-impl Rank {
-    fn value(self) -> u32 {
-        match self {
-            Num(n) => n,
-            Jack => 11,
-            Queen => 12,
-            King => 13,
-            Ace => 1,
-        }
-    }
-}
-
-use Rank::*;
-
-/// Struct for playing card
-#[derive(Debug, Clone, Copy, Eq)]
-struct Card {
-    rank: Rank,
-    suit: Suit,
-}
-
-/// Comparison for cards by rank, ignoring suit
-impl PartialEq<Card> for Card {
-    fn eq(&self, other: &Card) -> bool {
-        self.rank == other.rank
-    }
-}
-
-/// Comparison for cards to a rank value
-impl PartialEq<u32> for Card {
-    fn eq(&self, other: &u32) -> bool {
-        self.rank.value() == *other
-    }
-}
-
-/// Create a new card
-impl Card {
-    fn new(rank: Rank, suit: Suit) -> Card {
-        Card {
-            rank: rank,
-            suit: suit,
-        }
-    }
-}
-
-/// Implements display for Card struct
-impl std::fmt::Display for Card {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self.rank {
-            Num(n) => write!(f, "{} of {:?}", n, self.suit),
-            _ => write!(f, "{:?} of {:?}", self.rank, self.suit),
-        }
-    }
-}
+use std::net::{TcpListener, SocketAddr};//, TcpStream};
+use std::io::{Write};//, BufRead};
 
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
@@ -110,7 +32,7 @@ fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
     deck
 }
 
-/// COMBINATION TESTS BELOW HERE
+// COMBINATION TESTS BELOW HERE
 
 /// Top and second card have same rank
 fn is_pair(pile: &Vec<Card>) -> bool {
@@ -251,15 +173,15 @@ fn main() {
     let listener = TcpListener::bind(&address).unwrap();
 
     match listener.accept() {
-        Ok((mut socket, addr)) => {
+        Ok((mut socket, _addr)) => {
             println!("Connection established!");
-            writeln!(socket, "message from server");
-            /*
+            let _ = writeln!(socket, "message from server");
+            
             for _ in 0..11 {
                 pile.push(deck.pop().unwrap());
             }
             test_pile(pile);
-            */
+            
         }
         Err(e) => {
             println!("Error {}", e);
