@@ -5,12 +5,10 @@
 
 extern crate card;
 extern crate rand;
-extern crate serde;
 use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
-use std::net::{TcpListener, SocketAddr};//, TcpStream};
-use std::io::{Write};//, BufRead};
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use std::net::{TcpListener, SocketAddr};
+use std::io::{Write};
 
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
@@ -177,13 +175,15 @@ fn main() {
     match listener.accept() {
         Ok((mut socket, _addr)) => {
             println!("Connection established!");
-            let _ = writeln!(socket, "message from server");
+            let reader = socket;
+            let mut writer = reader.try_clone().unwrap();
+            let reader = std::io::BufReader::new(reader);
+            writeln!(writer, "message from server").unwrap();
             
             for _ in 0..11 {
                 pile.push(deck.pop().unwrap());
             }
             test_pile(pile);
-            
         }
         Err(e) => {
             println!("Error {}", e);
