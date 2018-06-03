@@ -14,12 +14,12 @@ and runs of three.
 
 ### Installation (Linux)
 
-1. Clone the repository with:
+1. Clone the repository with: <br />
 'git clone https://github.com/zedzorander/egyptian-ratscrew.git'
 
 2. Open second terminal
 
-3. In first terminal, start server with:
+3. In first terminal, start server with: <br />
 'cargo run --bin server'
 
 4. In second terminal, start client with:
