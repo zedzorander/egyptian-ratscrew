@@ -178,6 +178,8 @@ fn card_to_string(card: Card) -> String{
     card_string.push_str(&suit);
     card_string.push_str(")");
 
+    println!("Sending {:?}", card_string);
+
     card_string
 }
 
@@ -204,6 +206,7 @@ fn main() {
             
             // send card to client
             let mut writer = BufWriter::new(&socket);
+            
             writeln!(writer, "{}\n", card_to_string(card)).unwrap();
             writer.flush().ok();
             
