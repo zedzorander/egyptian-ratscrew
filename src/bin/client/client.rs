@@ -1,3 +1,8 @@
+// MIT License
+// Copyright (c) 2018 Cole Phares
+// Last Modified: 5/22/2018
+// Server side for online card game Egyptian RatScrew
+
 extern crate card;
 use card::{Card, Rank::*, Suit, Suit::*};
 use std::net::TcpStream;
