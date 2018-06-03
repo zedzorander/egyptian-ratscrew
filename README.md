@@ -12,8 +12,9 @@ and runs of three.
 
 ## Getting Started
 
+###Installation
 
-###Installation (Linux)
+####In Linux
 
 1. Clone the repository with:
 'git clone https://github.com/zedzorander/egyptian-ratscrew.git'
