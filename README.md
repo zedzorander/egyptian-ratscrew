@@ -2,11 +2,28 @@
 
 Copyright (c) 2018 Cole Phares
 
-This program implements a command line client-server model of the card game 
+## About
+
+This program implements a Linux command line TCP model of the card game 
 Egyptian Ratscrew. Link for description of game: 
 https://en.wikipedia.org/wiki/Egyptian_Ratscrew.
 This program only implements pairs, sandwiches, sixty-nines, sixty-nine sandwiches
-and runs of three
+and runs of three.
+
+## Getting Started
+
+###Installation (Linux)
+
+1. Clone the repository with:
+'git clone https://github.com/zedzorander/egyptian-ratscrew.git'
+
+2. Open second terminal
+
+3. In first terminal, start server with:
+'cargo run --bin server'
+
+4. In second terminal, start client with:
+'cargo run --bin client'
 
 ### License
 
