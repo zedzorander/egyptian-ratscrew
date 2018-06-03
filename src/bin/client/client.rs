@@ -18,33 +18,40 @@ fn get_suit(suit: String) -> Suit {
     }
 }
 
-fn main() {
-    // connect to server.rs
-    if let Ok(stream) = TcpStream::connect("127.0.0.1:24794") {
-        let mut hand: Vec<Card> = Vec::new();
-
+fn accept_deal(mut hand: Vec<Card>, stream: &TcpStream) -> Vec<Card> {
+    for _ in 0..26 {
         // read message from server
-        let mut reader = BufReader::new(&stream);
+        let mut reader = BufReader::new(stream);
         let mut response = String::new();
-        reader.read_line(&mut response);
-        
+        reader.read_line(&mut response).ok();
+        //println!("Received: {}", response);
+
+        let mut v: Vec<&str> = response.split(", ").collect();
+        let suit: String = v.pop()
+                            .unwrap()
+                            .to_string();
+        let rank: u32 = v.pop()
+                         .unwrap()
+                         .parse::<u32>()
+                         .unwrap();
+
+        /*
         // get rank from response
         let rank: u32 = response.chars()
                                 .nth(1)
                                 .unwrap() as u32 - '0' as u32;
+        println!("rank: {}", rank);
         // get suit from response
         let suit: String = response.chars()
                                    .skip(4)
                                    .filter(|x| *x != ')' && *x != '\n')
                                    .collect();
+        */
+        let _card: Card;
 
-        println!("Card: ({}, {})", rank, suit);
-        
-        let card: Card;
-
-        if rank <= 10 {
+        if rank > 1 && rank <= 10 {
             let card = Card::new(Num(rank), get_suit(suit));
-            println!("Card: {:?}", card);
+            //println!("Card: {:?}", card);
             hand.push(card);
         }else {
             let card = match rank {
@@ -54,14 +61,27 @@ fn main() {
                 1 => Card::new(Ace, get_suit(suit)),
                 _ => panic!("Unexpected Rank {}", rank)
             };
-            println!("Card: {:?}", card);
+            //println!("Card: {:?}", card);
             hand.push(card);
         }
 
         
-        let mut writer = BufWriter::new(&stream);
+        let mut writer = BufWriter::new(stream);
         writer.write_all(b"client says hello\n").ok();
+    }
+    hand
+}
+
+fn main() {
+    // connect to server.rs
+    if let Ok(stream) = TcpStream::connect("127.0.0.1:24794") {
+        let mut hand: Vec<Card> = Vec::new();
         
+        hand = accept_deal(hand, &stream);
+
+        for i in &hand {
+            println!("{}", i);
+        }
     } else {
         println!("Couldn't connect to server...");
     }

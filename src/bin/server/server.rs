@@ -166,17 +166,19 @@ fn test_pile(pile: &Vec<Card>) -> bool {
 
 // creates a string of the card of the form "(rank, suit)"
 fn card_to_string(card: Card) -> String{
-    let mut card_string: String = "(".to_string();
+    //let mut card_string: String = "(".to_string();
     
     // add rank
-    let rank = card.rank.value();
-    card_string.push_str(&rank.to_string());
+    //let rank = card.rank.value();
+    //card_string.push_str(&rank.to_string());
+    let mut card_string = card.rank.value().to_string();
     card_string.push_str(", ");
     
     // add suit
-    let suit: String = card.suit.value();
-    card_string.push_str(&suit);
-    card_string.push_str(")");
+    //let suit: String = card.suit.value();
+    //card_string.push_str(&suit);
+    card_string.push_str(&card.suit.value());
+    //card_string.push_str(")");
 
     println!("Sending {:?}", card_string);
 
@@ -193,33 +195,38 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            //println!("Connection established!");
-            
+            let mut hand: Vec<Card> = Vec::new();
+
             // fill pile with ten cards for testing
-            for _ in 0..10 {
-                pile.push(deck.pop().unwrap());
+            for i in 0..(deck.len()/2) {
+                //pile.push(deck.pop().unwrap());
+                //test_pile(&pile);
+            
+                // get card from pile
+                let card: Card = deck.pop().unwrap();
+            
+                // send card to client
+                let mut writer = BufWriter::new(&socket);
+            
+                writeln!(writer, "{}\n", card_to_string(card)).unwrap();
+                writer.flush().ok();
+            
+                // get response from client
+                let mut reader = BufReader::new(&socket);
+                let mut message = String::new();
+                match reader.read_line(&mut message) {
+                    Ok(_) => {
+                        println!("message from client: {}", message);
+                    }
+                    Err(e) => {
+                        println!("Error reading message: {:?}", e);
+                    }
+                }
+
+                hand.push(deck.pop().unwrap());
             }
-            test_pile(&pile);
-            
-            // get card from pile
-            let card: Card = pile.pop().unwrap();
-            
-            // send card to client
-            let mut writer = BufWriter::new(&socket);
-            
-            writeln!(writer, "{}\n", card_to_string(card)).unwrap();
-            writer.flush().ok();
-            
-            // get response from client
-            let mut reader = BufReader::new(&socket);
-            let mut message = String::new();
-            match reader.read_line(&mut message) {
-                Ok(_) => {
-                    println!("message from client: {}", message);
-                }
-                Err(e) => {
-                    println!("Error reading message: {:?}", e);
-                }
+            for i in &hand {
+                println!("{}", i);
             }
         }
         Err(e) => {
