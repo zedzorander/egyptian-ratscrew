@@ -25,10 +25,13 @@ fn make_deck() -> Vec<Card> {
     deck
 }
 
-/// Shuffles the deck of cards
+/// Shuffles the deck of cards a random amount of times
+/// between 5 and 15
 fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
-    let mut rng = rand::thread_rng();
-    rng.shuffle(&mut deck);
+    let rand: usize = rand::thread_rng().gen_range(5, 15);
+    for _ in 0..rand {
+        rand::thread_rng().shuffle(&mut deck);
+    }
     deck
 }
 
@@ -166,21 +169,13 @@ fn test_pile(pile: &Vec<Card>) -> bool {
 
 // creates a string of the card of the form "(rank, suit)"
 fn card_to_string(card: Card) -> String{
-    //let mut card_string: String = "(".to_string();
     
     // add rank
-    //let rank = card.rank.value();
-    //card_string.push_str(&rank.to_string());
     let mut card_string = card.rank.value().to_string();
     card_string.push_str(", ");
     
     // add suit
-    //let suit: String = card.suit.value();
-    //card_string.push_str(&suit);
     card_string.push_str(&card.suit.value());
-    //card_string.push_str(")");
-
-    println!("Sending {:?}", card_string);
 
     card_string
 }
@@ -212,11 +207,12 @@ fn main() {
                 writer.flush().ok();
             
                 // get response from client
+                // use when figuring out event handler
                 let mut reader = BufReader::new(&socket);
                 let mut message = String::new();
                 match reader.read_line(&mut message) {
                     Ok(_) => {
-                        println!("message from client: {}", message);
+                        //println!("message from client: {}", message);
                     }
                     Err(e) => {
                         println!("Error reading message: {:?}", e);
