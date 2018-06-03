@@ -22,7 +22,7 @@ and runs of three.
 3. In first terminal, start server with: <br />
 `cargo run --bin server`
 
-4. In second terminal, start client with:
+4. In second terminal, start client with: <br />
 `cargo run --bin client`
 
 ### License
