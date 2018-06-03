@@ -1,9 +1,16 @@
 extern crate card;
-extern crate ggez;
-use ggez::event;
 use card::{Card, Rank::*, Suit::*};
 use std::net::TcpStream;
 use std::io::{BufReader, BufWriter, Write, BufRead};
+
+fn get_suit(suit: String) -> Suit {
+    match suit.as_ref() {
+        "Hearts" => Suit::Hearts,
+        "Diamonds" => Suit::Diamonds,
+        "Spades" => Suit::Spades,
+        "Clubs" => Suit::Clubs,
+    }
+}
 
 fn main() {
     // connect to server.rs
@@ -21,24 +28,21 @@ fn main() {
                                    .filter(|x| *x != ')' && *x != '\n')
                                    .collect();
 
-        /*
-        let suit: String = response.chars()
-                                   .skip(4)
-                                   .take(6)
-                                   .collect();
-        */
         println!("Card: ({}, {})", rank, suit);
         
-        /*
-        match reader.read_line(&mut response) {
-            Ok(_) => {
-                println!("message from server: {}", response);
-            }
-            Err(e) => {
-                println!("Error reading message {:?}", e);
-            }
+        let card: Card;
+
+        if rank <= 10 {
+            let card = Card::new(Num(rank), get_suit(suit));
+        }else {
+            let card = match rank {
+                11 => Card::new(Jack, get_suit(suit)),
+                12 => Card::new(Queen, get_suit(suit)),
+                13 => Card::new(King, get_suit(suit)),
+                1 => Card::new(Ace, get_suit(suit)),
+            };
         }
-        */
+        
         let mut writer = BufWriter::new(&stream);
         writer.write_all(b"client says hello\n").ok();
         
