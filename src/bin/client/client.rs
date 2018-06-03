@@ -1,23 +1,47 @@
 extern crate card;
+extern crate ggez;
+use ggez::event;
 use card::{Card, Rank::*, Suit::*};
 use std::net::TcpStream;
-use std::io::Read;
+use std::io::{BufReader, BufWriter, Write, BufRead};
 
 fn main() {
+    // connect to server.rs
     if let Ok(mut stream) = TcpStream::connect("127.0.0.1:24794") {
-        println!("Connected to server!");
-        let mut buf = String::new();
-        let _message = stream.read_to_string(&mut buf);
-        println!("{}", buf);
-        println!("{}", buf);
-        /*match stream.read_to_string(&mut message) {
-            Ok(_n) => {
-                println!("buff is: {:?}", message.trim());
+        let mut reader = BufReader::new(&stream);
+        let mut response = String::new();
+        reader.read_line(&mut response);
+
+        let rank: u32 = response.chars()
+                                .nth(1)
+                                .unwrap() as u32 - '0' as u32;
+        
+        let suit: String = response.chars()
+                                   .skip(4)
+                                   .filter(|x| *x != ')' && *x != '\n')
+                                   .collect();
+
+        /*
+        let suit: String = response.chars()
+                                   .skip(4)
+                                   .take(6)
+                                   .collect();
+        */
+        println!("Card: ({}, {})", rank, suit);
+        
+        /*
+        match reader.read_line(&mut response) {
+            Ok(_) => {
+                println!("message from server: {}", response);
             }
-            Err(_e) => {
-                println!("Error motherfucker");
+            Err(e) => {
+                println!("Error reading message {:?}", e);
             }
-        }*/
+        }
+        */
+        let mut writer = BufWriter::new(&stream);
+        writer.write_all(b"client says hello\n").ok();
+        
     } else {
         println!("Couldn't connect to server...");
     }

@@ -8,7 +8,7 @@ extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
 use std::net::{TcpListener, SocketAddr};
-use std::io::{Write};
+use std::io::{BufReader, BufWriter, Write, BufRead};
 
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
@@ -120,8 +120,8 @@ fn is_run(pile: &Vec<Card>) -> bool {
 }
 
 /// Tests for different combinations
-fn test_pile(pile: Vec<Card>) -> bool {
-    if is_pair(&pile) {
+fn test_pile(pile: &Vec<Card>) -> bool {
+    if is_pair(pile) {
         println!("There is a pair:");
         for i in &pile[0..2] {
             println!("{}", i);
@@ -130,7 +130,7 @@ fn test_pile(pile: Vec<Card>) -> bool {
         return true;
     }
     // tests for a pair sandwich
-    else if is_sandwich(&pile) {
+    else if is_sandwich(pile) {
         println!("There is a sandwich:");
         for i in &pile[0..3] {
             println!("{}", i);
@@ -138,7 +138,7 @@ fn test_pile(pile: Vec<Card>) -> bool {
         println!();
     }
     // tests for a sixty-nine combo
-    else if is_sixty_nine(&pile) {
+    else if is_sixty_nine(pile) {
         println!("There is a sixty nine:");
         for i in &pile[0..2] {
             println!("{}", i);
@@ -146,7 +146,7 @@ fn test_pile(pile: Vec<Card>) -> bool {
         println!();
     }
     // tests for a sixty-nine combo
-    else if is_sixty_nine_sandwich(&pile) {
+    else if is_sixty_nine_sandwich(pile) {
         println!("There is a sixty nine sandwich:");
         for i in &pile[0..3] {
             println!("{}", i);
@@ -154,7 +154,7 @@ fn test_pile(pile: Vec<Card>) -> bool {
         println!();
     }
     // tests for a run of three cards
-    else if is_run(&pile) {
+    else if is_run(pile) {
         println!("There is a run:");
         for i in &pile[0..3] {
             println!("{}", i);
@@ -162,6 +162,23 @@ fn test_pile(pile: Vec<Card>) -> bool {
         println!();
     }
     false
+}
+
+// creates a string of the card of the form "(rank, suit)"
+fn card_to_string(card: Card) -> String{
+    let mut card_string: String = "(".to_string();
+    
+    // add rank
+    let rank = card.rank.value();
+    card_string.push_str(&rank.to_string());
+    card_string.push_str(", ");
+    
+    // add suit
+    let suit: String = card.suit.value();
+    card_string.push_str(&suit);
+    card_string.push_str(")");
+
+    card_string
 }
 
 fn main() {
@@ -173,17 +190,34 @@ fn main() {
     let listener = TcpListener::bind(&address).unwrap();
 
     match listener.accept() {
-        Ok((mut socket, _addr)) => {
-            println!("Connection established!");
-            let reader = socket;
-            let mut writer = reader.try_clone().unwrap();
-            let reader = std::io::BufReader::new(reader);
-            writeln!(writer, "message from server").unwrap();
+        Ok((socket, _addr)) => {
+            //println!("Connection established!");
             
-            for _ in 0..11 {
+            // fill pile with ten cards for testing
+            for _ in 0..10 {
                 pile.push(deck.pop().unwrap());
             }
-            test_pile(pile);
+            test_pile(&pile);
+            
+            // get card from pile
+            let card: Card = pile.pop().unwrap();
+            
+            // send card to client
+            let mut writer = BufWriter::new(&socket);
+            writeln!(writer, "{}\n", card_to_string(card)).unwrap();
+            writer.flush().ok();
+            
+            // get response from client
+            let mut reader = BufReader::new(&socket);
+            let mut message = String::new();
+            match reader.read_line(&mut message) {
+                Ok(_) => {
+                    println!("message from client: {}", message);
+                }
+                Err(e) => {
+                    println!("Error reading message: {:?}", e);
+                }
+            }
         }
         Err(e) => {
             println!("Error {}", e);

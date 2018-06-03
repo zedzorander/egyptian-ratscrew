@@ -6,10 +6,10 @@
 // Code to create a shuffled deck of cards borrowed and modified from
 // http://cultofmetatron.io/2017/03/21/learning-rust-with-blackjack-part-1/
 
-extern crate serde;
-use serde::ser::{Serialize, Serializer, SerializeStruct};
-use serde::{Deserialize, Deserializer};
-use serde::de::EnumAccess;
+//extern crate serde;
+//use serde::ser::{Serialize, Serializer, SerializeStruct};
+//use serde::{Deserialize, Deserializer};
+//use serde::de::EnumAccess;
 
 /// Suit of the card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,6 +18,20 @@ pub enum Suit {
     Diamonds,
     Spades,
     Clubs,
+}
+
+use::Suit::*;
+
+impl Suit {
+    // returns a string of the suit
+    pub fn value(self) -> String {
+        match self {
+            Hearts => "Hearts".to_string(),
+            Diamonds => "Diamonds".to_string(),
+            Spades => "Spades".to_string(),
+            Clubs => "Clubs".to_string(),
+        }
+    }
 }
 
 /*
@@ -49,6 +63,8 @@ pub enum Rank {
     King,
     Ace,
 }
+
+use Rank::*;
 
 /// Gives the Rank enum a value for ordering
 impl Rank {
@@ -85,7 +101,6 @@ impl<'de> Deserialize<'de> for Rank {
     }
 }
 */
-use Rank::*;
 
 /// Struct for playing card
 #[derive(Debug, Clone, Copy, Eq)]
