@@ -4,9 +4,13 @@
 // Server side for online card game Egyptian RatScrew
 
 extern crate card;
+extern crate termion;
 use card::{Card, Rank::*, Suit, Suit::*};
 use std::net::TcpStream;
-use std::io::{BufReader, BufWriter, Write, BufRead};
+use std::io::{BufReader, Read, BufWriter, Write, BufRead, stdin, stdout};
+use termion::event::Key;
+use termion::raw::IntoRawMode;
+//use termion::input::TermRead;
 
 fn get_suit(suit: String) -> Suit {
     match suit.trim().to_string().as_ref() {
@@ -35,18 +39,6 @@ fn accept_deal(mut hand: Vec<Card>, stream: &TcpStream) -> Vec<Card> {
                          .parse::<u32>()
                          .unwrap();
 
-        /*
-        // get rank from response
-        let rank: u32 = response.chars()
-                                .nth(1)
-                                .unwrap() as u32 - '0' as u32;
-        println!("rank: {}", rank);
-        // get suit from response
-        let suit: String = response.chars()
-                                   .skip(4)
-                                   .filter(|x| *x != ')' && *x != '\n')
-                                   .collect();
-        */
         let _card: Card;
 
         if rank > 1 && rank <= 10 {
@@ -78,6 +70,22 @@ fn main() {
         let mut hand: Vec<Card> = Vec::new();
         
         hand = accept_deal(hand, &stream);
+
+        //let mut stdin = stdin();
+        //let mut stdout = stdout().into_raw_mode().unwrap();
+
+        //write!(stdout, "press space: ");
+        //stdout.flush().unwrap();
+
+        /*for c in stdin.keys() {
+            match c.unwrap() {
+                Key::Char(' ') => {
+                    write!(stdout, "You hit the {:?} key.", c);
+                    stdout.flush().unwrap();
+                },
+                _ => println!("No key was pressed")
+            }
+        }*/
 
         for i in &hand {
             println!("{}", i);

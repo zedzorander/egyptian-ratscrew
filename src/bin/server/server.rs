@@ -232,4 +232,30 @@ fn main() {
 }
 
 
+#[cfg(test)]
+mod tests {
+    extern crate card;
+    use card::{Card, Rank, Rank::*, Suit, Suit::*};
 
+    #[test]
+    fn test_card_creation() {
+        let card = Card::new(Num(6), Suit::Clubs);
+
+        assert_eq!(card.rank.value(), 6);
+        assert_eq!(card.suit, Suit::Clubs);
+    }
+
+    #[test]
+    fn test_different_rank() {
+        let card = Card::new(Num(6), Suit::Clubs);
+
+        assert_ne!(card.rank.value(), 11);
+    }
+
+    #[test]
+    fn test_different_suit() {
+        let card = Card::new(Num(6), Suit::Clubs);
+
+        assert_ne!(card.suit, Suit::Diamonds);
+    }
+}

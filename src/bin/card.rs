@@ -12,7 +12,7 @@
 //use serde::de::EnumAccess;
 
 /// Suit of the card
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Eq)]
 pub enum Suit {
     Hearts,
     Diamonds,
@@ -33,6 +33,13 @@ impl Suit {
         }
     }
 }
+
+impl PartialEq<Suit> for Suit {
+    fn eq(&self, other: &Suit) -> bool {
+        self.value() == other.value()
+    }
+}
+
 
 /*
 /// Serializer for Suit
