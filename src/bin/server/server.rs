@@ -7,7 +7,7 @@ extern crate card;
 extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
-use std::net::{TcpListener, SocketAddr};
+use std::net::{TcpListener, TcpStream, SocketAddr};
 use std::io::{BufReader, BufWriter, Write, BufRead};
 
 /// Creates a deck of cards
@@ -124,6 +124,9 @@ fn is_run(pile: &Vec<Card>) -> bool {
 
 /// Tests for different combinations
 fn test_pile(pile: &Vec<Card>) -> bool {
+    if pile.len() == 0 {
+        return false
+    }
     if is_pair(pile) {
         println!("There is a pair:");
         for i in &pile[0..2] {
@@ -167,7 +170,7 @@ fn test_pile(pile: &Vec<Card>) -> bool {
     false
 }
 
-// creates a string of the card of the form "(rank, suit)"
+/// creates a string of the card of the form "(rank, suit)"
 fn card_to_string(card: Card) -> String{
     
     // add rank
@@ -180,6 +183,40 @@ fn card_to_string(card: Card) -> String{
     card_string
 }
 
+/// Deals the cards to the client and server hands
+fn deal(deck: &mut Vec<Card>, socket: &TcpStream) -> Vec<Card> {
+    let mut hand: Vec<Card> = Vec::new();
+
+    // deal card to player and self
+    for _ in 0..(deck.len()/2) {
+        
+        // get card from pile
+        let card: Card = deck.pop().unwrap();
+        
+        // send card to client
+        let mut writer = BufWriter::new(socket);
+        
+        writeln!(writer, "{}\n", card_to_string(card)).unwrap();
+        writer.flush().ok();
+        
+        // get response from client
+        // use when figuring out event handler
+        let mut reader = BufReader::new(socket);
+        let mut message = String::new();
+        match reader.read_line(&mut message) {
+            Ok(_) => {
+                //println!("message from client: {}", message);
+            }
+            Err(e) => {
+                println!("Error reading message: {:?}", e);
+            }
+        }
+
+        hand.push(deck.pop().unwrap());
+    }
+    hand
+}
+
 fn main() {
     let mut deck: Vec<Card> = shuffle_deck(make_deck());
     let mut pile: Vec<Card> = Vec::new();
@@ -190,37 +227,11 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            let mut hand: Vec<Card> = Vec::new();
+            let mut hand = deal(&mut deck, &socket);
 
-            // fill pile with ten cards for testing
-            for i in 0..(deck.len()/2) {
-                //pile.push(deck.pop().unwrap());
-                //test_pile(&pile);
+            //pile.push(deck.pop().unwrap());
+            test_pile(&pile);
             
-                // get card from pile
-                let card: Card = deck.pop().unwrap();
-            
-                // send card to client
-                let mut writer = BufWriter::new(&socket);
-            
-                writeln!(writer, "{}\n", card_to_string(card)).unwrap();
-                writer.flush().ok();
-            
-                // get response from client
-                // use when figuring out event handler
-                let mut reader = BufReader::new(&socket);
-                let mut message = String::new();
-                match reader.read_line(&mut message) {
-                    Ok(_) => {
-                        //println!("message from client: {}", message);
-                    }
-                    Err(e) => {
-                        println!("Error reading message: {:?}", e);
-                    }
-                }
-
-                hand.push(deck.pop().unwrap());
-            }
             for i in &hand {
                 println!("{}", i);
             }
