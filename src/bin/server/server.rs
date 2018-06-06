@@ -349,7 +349,6 @@ fn main() {
             let mut hand = deal_hands(&mut deck, &socket);
             
             //play_game(&mut hand, &socket);
-            //pile.push(deck.pop().unwrap());
             test_pile(&pile);
             
             for i in &hand {

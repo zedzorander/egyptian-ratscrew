@@ -7,10 +7,10 @@ extern crate card;
 extern crate termion;
 use card::{Card, Rank::*};
 use std::net::TcpStream;
-use std::io::{BufReader, /*Read, BufWriter, Write,*/ BufRead};//, stdin, stdout};
-//use termion::event::Key;
-//use termion::raw::IntoRawMode;
-//use termion::input::TermRead;
+use std::io::{BufReader, Read, BufWriter, Write, BufRead, stdin, stdout};
+use termion::event::Key;
+use termion::raw::IntoRawMode;
+use termion::input::TermRead;
 
 
 /// Takes the cards the server sends
@@ -48,31 +48,38 @@ fn accept_deal(mut hand: Vec<Card>, stream: &TcpStream) -> Vec<Card> {
             };
             hand.push(card);
         }
-        /*let mut writer = BufWriter::new(stream);
-        writer.write_all(b"client says hello\n").ok();
-        writer.flush().ok();
-        */
     }
     hand
 }
-/*
+
 /// Players game control
 fn play_game(hand: &mut Vec<Card>, stream: &TcpStream) {
     let mut reader = BufReader::new(stream);
     let mut writer = BufWriter::new(stream);
     let mut response = String::new();
 
+
     /*while !hand.is_empty() || hand.len() != 52 {
     
+        for c in stdin.keys() {
+            match c.unwrap() {
+                Key::Char(' ') => {
+                    write!(stdout, "You hit the {:?} key.", c);
+                    stdout.flush().unwrap();
+                },
+                _ => println!("No key was pressed")
+            }
+        }
     }
     */
-}
-*/
-fn main() {
-    //let mut input = String::new();
-    //let mut valid_input = false;
 
-    /*while !valid_input {
+}
+
+fn main() {
+    let mut input = String::new();
+    let mut valid_input = false;
+
+    while !valid_input {
         // Print welcome prompt
         println!("Welcome to Egyptian Ratscrew!!\nPress p to play\nPress q to quit: ");
         stdin().read_line(&mut input).ok();
@@ -84,18 +91,12 @@ fn main() {
         }
     }
     println!("outside of prompt section"); 
-    */
+    
     // Connect to the server
     if let Ok(stream) = TcpStream::connect("127.0.0.1:24794") {
         let mut hand: Vec<Card> = Vec::new();
         
         hand = accept_deal(hand, &stream);
-        
-        let reader: &mut BufRead = &mut BufReader::new(&stream);
-        
-        let mut response = String::new();
-        reader.read_line(&mut response).unwrap();
-        println!("Received: {}", response);
         
         // Trying to get event handling working
         //let mut stdin = stdin();
@@ -103,16 +104,6 @@ fn main() {
 
         //write!(stdout, "press space: ");
         //stdout.flush().unwrap();
-
-        /*for c in stdin.keys() {
-            match c.unwrap() {
-                Key::Char(' ') => {
-                    write!(stdout, "You hit the {:?} key.", c);
-                    stdout.flush().unwrap();
-                },
-                _ => println!("No key was pressed")
-            }
-        }*/
 
         for i in &hand {
             print!("{}\r\n", i);
