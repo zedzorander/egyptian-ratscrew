@@ -8,8 +8,8 @@ extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
 use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::io::{BufReader, BufWriter, Write, BufRead};
-use std::process::Command;
+use std::io::{/*BufReader,*/ BufWriter, Write, /*BufRead*/};
+//use std::process::Command;
 /*
 struct Server<P: Fn(Vec<Card>, &mut Vec<Card>, &TcpStream) -> Vec<Card>> {
     play_card: P,
@@ -304,7 +304,7 @@ fn clients_turn(pile: mut Vec<Card>, reader: &mut BufReader
 
 }
 */
-
+/*
 /// Game control function
 fn play_game(hand: &mut Vec<Card>, socket: &TcpStream) {
     let mut pile: Vec<Card> = Vec::new();
@@ -335,10 +335,10 @@ fn play_game(hand: &mut Vec<Card>, socket: &TcpStream) {
         }
     }*/
 }
-
+*/
 fn main() {
     let mut deck: Vec<Card> = shuffle_deck(make_deck());
-    let mut pile: Vec<Card> = Vec::new();
+    let pile: Vec<Card> = Vec::new();
     
     // Creates Tcp connection
     let address = ("0.0.0.0:24794").parse::<SocketAddr>().unwrap();
