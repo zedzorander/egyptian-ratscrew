@@ -138,6 +138,29 @@ impl Card {
             suit: suit,
         }
     }
+    
+    /// creates a string of the card of the form "(rank, suit)"
+    pub fn card_to_string(card: Card) -> String{
+        // add rank
+        let mut card_string = card.rank.value().to_string();
+        card_string.push_str(", ");
+    
+        // add suit
+        card_string.push_str(&card.suit.value());
+
+        card_string
+    }
+
+    /// Determines the suit of the card
+    pub fn get_suit(suit: String) -> Suit {
+        match suit.trim().to_string().as_ref() {
+            "Hearts" => Hearts,
+            "Diamonds" => Diamonds,
+            "Spades" => Spades,
+            "Clubs" => Clubs,
+            _ => panic!("Unexpected Suit {}", suit)
+        }
+    }
 }
 /*
 /// Serializer for Card

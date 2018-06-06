@@ -9,7 +9,108 @@ use card::{Card, Rank::*, Suit::*};
 use rand::Rng;
 use std::net::{TcpListener, TcpStream, SocketAddr};
 use std::io::{BufReader, BufWriter, Write, BufRead};
+use std::process::Command;
+/*
+struct Server<P: Fn(Vec<Card>, &mut Vec<Card>, &TcpStream) -> Vec<Card>> {
+    play_card: P,
+}
 
+fn send_pile(pile: Vec<Card>, socket: &TcpStream) {
+    let mut writer = BufWriter::new(socket);
+    
+    // send top three cards of the pile to client
+    if pile.len() == 0 {}
+    else if pile.len() == 1 {
+        // send card
+        writeln!(writer, "Pile:");
+        writer.flush();
+        writeln!(writer, "{}", pile[0]).unwrap();
+        writer.flush();
+    }
+    else if pile.len() == 2 {
+        // send cards
+        writeln!(writer, "Pile:");
+        for c in 0..2 {
+            // send top two cards on pile
+            writeln!(writer, "{:?}", pile[c]).unwrap();
+            writer.flush();
+        }
+    }
+    else {
+        for c in 0..3 {
+            // send top three cards on pile
+            writeln!(writer, "{:?}", pile[c]).unwrap();
+            writer.flush();
+        }
+    }
+}
+
+impl<P: Fn(Vec<Card>, &mut Vec<Card>, &TcpStream) -> Vec<Card>> Server<P> 
+{
+    fn play_card(&self, mut pile: Vec<Card>, hand: &mut Vec<Card>, 
+                 socket: &TcpStream) -> Vec<Card> {
+        let card = hand.pop().unwrap();
+
+        // send top three cards on the pile to client
+        send_pile(pile, socket);
+
+        // add card to pile
+        pile.push(card);
+
+        // stall
+        let mut child = Command::new("sleep").arg("3").spawn().unwrap();
+        let _result = child.wait().unwrap();
+
+        // send updated top three cards of the pile to client
+        send_pile(pile, socket);
+
+        // if combination exists
+        if test_pile(&pile) {
+            // stall and wait for client event (take pile if stall ends w/o event)
+            let _result = child.wait().unwrap();
+        }
+        else {
+            // stall and wait for client event (take pile if event happens)
+            let _result = child.wait().unwrap();
+        }
+
+        pile
+    }
+}
+*/
+/*
+struct Client<P: Fn(&mut Vec<Card>, BufReader, &mut BufWriter) -> Vec<Card>> {
+    play_card: P,
+}
+
+impl<P: Fn(&mut Vec<Card>, BufReader, &mut BufWriter) -> Vec<Card>> Server<P> {
+    fn play_card(&self, pile: &mut Vec<Card>, reader: &BufReader,
+                 writer: &mut BufWriter) -> Vec<Card> {
+        // send top three cards of the pile to client
+        for c in &pile.len()..0 {
+            println!("card: {:?}", c);
+        }
+
+        // receive card from client
+    
+
+        // add card to pile
+
+
+        // send updated top three cards of the pile to client
+
+
+        // test pile for combinations
+
+
+        // if combination exists
+
+
+        // else
+
+    }
+}
+*/
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
     let mut deck: Vec<Card> = Vec::new();
@@ -170,21 +271,9 @@ fn test_pile(pile: &Vec<Card>) -> bool {
     false
 }
 
-/// creates a string of the card of the form "(rank, suit)"
-fn card_to_string(card: Card) -> String{
-    
-    // add rank
-    let mut card_string = card.rank.value().to_string();
-    card_string.push_str(", ");
-    
-    // add suit
-    card_string.push_str(&card.suit.value());
-
-    card_string
-}
 
 /// Deals the cards to the client and server hands
-fn deal(deck: &mut Vec<Card>, socket: &TcpStream) -> Vec<Card> {
+fn deal_hands(deck: &mut Vec<Card>, socket: &TcpStream) -> Vec<Card> {
     let mut hand: Vec<Card> = Vec::new();
 
     // deal card to player and self
@@ -192,29 +281,59 @@ fn deal(deck: &mut Vec<Card>, socket: &TcpStream) -> Vec<Card> {
         
         // get card from pile
         let card: Card = deck.pop().unwrap();
-        
+        println!("sending {:?}", card);
         // send card to client
         let mut writer = BufWriter::new(socket);
         
-        writeln!(writer, "{}\n", card_to_string(card)).unwrap();
+        writeln!(writer, "{}\n", Card::card_to_string(card)).unwrap();
         writer.flush().ok();
         
-        // get response from client
-        // use when figuring out event handler
-        let mut reader = BufReader::new(socket);
-        let mut message = String::new();
-        match reader.read_line(&mut message) {
-            Ok(_) => {
-                //println!("message from client: {}", message);
-            }
-            Err(e) => {
-                println!("Error reading message: {:?}", e);
-            }
-        }
-
         hand.push(deck.pop().unwrap());
     }
     hand
+}
+/*
+/// Adds server card to the pile
+fn servers_turn() {
+
+}
+
+/// Waits for card from client to add to pile
+fn clients_turn(pile: mut Vec<Card>, reader: &mut BufReader
+                writer: &mut BufWriter) -> Vec<Card> {
+
+}
+*/
+
+/// Game control function
+fn play_game(hand: &mut Vec<Card>, socket: &TcpStream) {
+    let mut pile: Vec<Card> = Vec::new();
+    //let client: Client;
+    let mut reader = BufReader::new(socket);
+    let mut writer = BufWriter::new(socket);
+    let mut response = String::new();
+
+    //pile = Server.play_card(pile, hand, socket);
+    // Randomly choose first player (if time allows)
+
+
+    // client plays first
+    /*while !hand.is_empty() || hand.len() != 52 {
+        reader.read_line(&mut response);
+    }*/
+    
+    // get response from client
+    // use when figuring out event handler
+    /*let mut reader = BufReader::new(socket);
+    let mut message = String::new();
+    match reader.read_line(&mut message) {
+        Ok(_) => {
+            //println!("message from client: {}", message);
+        }
+        Err(e) => {
+            println!("Error reading message: {:?}", e);
+        }
+    }*/
 }
 
 fn main() {
@@ -227,8 +346,9 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            let mut hand = deal(&mut deck, &socket);
-
+            let mut hand = deal_hands(&mut deck, &socket);
+            
+            //play_game(&mut hand, &socket);
             //pile.push(deck.pop().unwrap());
             test_pile(&pile);
             
