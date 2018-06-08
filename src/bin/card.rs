@@ -112,6 +112,35 @@ impl Card {
             _ => panic!("Unexpected Suit {}", suit)
         }
     }
+
+    /// Returns a card from a String
+    pub fn parse_card(card_string: String) -> Card {
+        // Gets the suit and rank in that order
+        let mut v: Vec<&str> = card_string.split(", ").collect();
+        let suit: String = v.pop()
+                            .unwrap()
+                            .to_string();
+        let rank: u32 = v.pop()
+                         .unwrap()
+                         .parse::<u32>()
+                         .unwrap();
+
+        let card: Card;
+        
+        // Adds the card to players hand
+        if rank > 1 && rank <= 10 {
+            card = Card::new(Num(rank), Card::get_suit(suit));
+        }else {
+            card = match rank {
+                11 => Card::new(Jack, Card::get_suit(suit)),
+                12 => Card::new(Queen, Card::get_suit(suit)),
+                13 => Card::new(King, Card::get_suit(suit)),
+                1 => Card::new(Ace, Card::get_suit(suit)),
+                _ => panic!("Unexpected Rank {}", rank)
+            };
+        }
+        card
+    }
 }
 
 /// Implements display for Card struct
