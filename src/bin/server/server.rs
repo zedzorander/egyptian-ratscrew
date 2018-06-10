@@ -7,8 +7,8 @@ extern crate card;
 extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::{Rng, random};
-use std::net::{TcpListener, /*TcpStream, */SocketAddr};
-use std::io::{BufReader, /*BufWriter, */Write, BufRead, Error, ErrorKind};
+use std::net::{TcpListener, SocketAddr};
+use std::io::{BufReader, Write, BufRead, Error, ErrorKind};
 
 /// Contains the players hand and side pile
 struct PlayerState {
@@ -90,7 +90,6 @@ impl Player for HumanPlayer {
         loop {
             let mut response = String::new();
             reader.read_line(&mut response).ok();
-            println!("play_card response: {}", response);
 
             match response.trim() {
                 "c" => {
@@ -113,40 +112,38 @@ impl Player for HumanPlayer {
         // Send updated top three cards of the pile to client
         send_pile(&pile, &mut writer);
         
+        println!("Current pile:");
         for c in pile.iter() {
             println!("{}", c);
         }
+        println!();
 
         // Add stall here
 
 
-        //loop {
-            // Wait for response from player
-            let mut response = String::new();
-            reader.read_line(&mut response).ok();
-            println!("HumanPlayer response: {}", response.trim());
+        // Wait for response from player
+        let mut response = String::new();
+        reader.read_line(&mut response).ok();
         
-            // Determine response action
-            match response.trim() {
-                // If player thinks there's a combination
-                "space" => {
-                    println!("space pressed");
-                    // Check if there's a combination and add pile to
-                    // HumanPlayer's hand, otherwise add pile to 
-                    // MachinePlayer's pile
-                    if test_pile(&pile) {
-                        println!("HumanPlayer combination found");
-                        self.add_to_side_pile(&mut pile).ok();
-                    } else {
-                        println!("HumanPlayer no combination found");
-                        opponent.add_to_side_pile(&mut pile).ok();
-                    }
-                    return Ok(pile.to_vec());
-                },
-                "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
-                _ => {}
-            };
-        //}
+        // Determine response action
+        match response.trim() {
+            // If player thinks there's a combination
+            "space" => {
+                // Check if there's a combination and add pile to
+                // HumanPlayer's hand, otherwise add pile to 
+                // MachinePlayer's pile
+                if test_pile(&pile) {
+                    println!("HumanPlayer combination found");
+                    self.add_to_side_pile(&mut pile).ok();
+                } else {
+                    println!("HumanPlayer no combination found");
+                    opponent.add_to_side_pile(&mut pile).ok();
+                }
+                return Ok(pile.to_vec());
+            },
+            "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+            _ => {}
+        };
         
         Ok(pile.to_vec())
     }
@@ -209,9 +206,11 @@ impl Player for MachinePlayer {
         // Send updated top three cards of the pile to client
         send_pile(&pile, &mut writer);
 
+        println!("Current pile:");
         for c in pile.iter() {
             println!("{}", c);
         }
+        println!();
 
         // Add stall here
         
@@ -219,12 +218,10 @@ impl Player for MachinePlayer {
         // wait for response from player
         let mut response = String::new();
         let _ = reader.read_line(&mut response);
-        println!("MachinePlayer response: {}", response.trim());
 
         // Determine response from player
         match response.trim() {
             "space" => {
-                println!("space pressed");
                 if test_pile(&pile) {
                     println!("MachinePlayer combination found");
                     opponent.add_to_side_pile(&mut pile).ok();
@@ -272,18 +269,26 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
         writer.flush().ok();
     }
     else if pile.len() == 2 {
+        let rev = &pile[pile.len() - 2..=pile.len() - 1];
+        write!(writer, "Pile:\r\n").ok();
+        
         // send cards
-        writeln!(writer, "Pile:\r\n").ok();
-        for c in (pile.len() - 1)..(pile.len() - 2) {
+        for c in rev.iter() {
+            println!("inside len = 2 for loop");
             // send top two cards on pile
-            writeln!(writer, "{}\r\n", pile[c]).unwrap();
+            write!(writer, "{}\r\n", c).unwrap();
         }
         writer.flush().ok();
     }
     else {
-        for c in (pile.len() - 1)..(pile.len() - 3) {
+        let rev = &pile[pile.len() - 3..=pile.len() - 1];
+        write!(writer, "Pile:\r\n").ok();
+        
+        // send cards
+        for c in rev.iter() {
+            println!("inside len = 3 for loop");
             // send top three cards on pile
-            writeln!(writer, "{}\r\n", pile[c]).unwrap();
+            write!(writer, "{}\r\n", c).unwrap();
         }
         writer.flush().ok();
     }
@@ -466,7 +471,7 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         write!(writer, "Computer goes first!\r\n").ok();
         writer.flush().ok();
     } else {
-        write!(writer, "You go first! Press c to play card\r\n").ok();
+        write!(writer, "You go first!\r\n").ok();
         writer.flush().ok();
     }
     

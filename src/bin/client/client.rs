@@ -43,7 +43,7 @@ fn play_game(stream: &TcpStream) {
                     key_writer.flush().unwrap();
                     return;
                 },
-                _ => println!("Invalid key pressed")
+                _ => println!("Invalid key pressed\r\n")
             }
         }
     });
