@@ -268,25 +268,24 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
     else if pile.len() == 1 {
         // send card
         writeln!(writer, "Pile:\r\n").ok();
-        //writer.flush();
-        writeln!(writer, "{}\r\n", pile[0]).unwrap();
+        writeln!(writer, "{}\r\n", pile[pile.len() - 1]).unwrap();
         writer.flush().ok();
     }
     else if pile.len() == 2 {
         // send cards
         writeln!(writer, "Pile:\r\n").ok();
-        for c in 0..2 {
+        for c in (pile.len() - 1)..(pile.len() - 2) {
             // send top two cards on pile
             writeln!(writer, "{}\r\n", pile[c]).unwrap();
-            writer.flush().ok();
         }
+        writer.flush().ok();
     }
     else {
-        for c in 0..3 {
+        for c in (pile.len() - 1)..(pile.len() - 3) {
             // send top three cards on pile
             writeln!(writer, "{}\r\n", pile[c]).unwrap();
-            writer.flush().ok();
         }
+        writer.flush().ok();
     }
 }
 
@@ -467,7 +466,7 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         write!(writer, "Computer goes first!\r\n").ok();
         writer.flush().ok();
     } else {
-        write!(writer, "You go first!\r\nPress c to play card\r\n").ok();
+        write!(writer, "You go first! Press c to play card\r\n").ok();
         writer.flush().ok();
     }
     
@@ -487,7 +486,7 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         } else {
             player = &mut human;
             opponent = &mut machine;
-            writeln!(writer, "Your turn!\nPress c to play card\r\n").ok();
+            writeln!(writer, "Your turn! Press c to play card\r\n").ok();
             writer.flush().ok();
         }
 

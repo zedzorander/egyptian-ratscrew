@@ -16,7 +16,6 @@ use std::thread;
 fn play_game(stream: &TcpStream) {
     let network_reader = stream.try_clone().unwrap();
     let mut key_writer = stream.try_clone().unwrap();
-    let mut message = String::new();
 
     // Thread to control key events
     let key_handler = thread::spawn(move || {
@@ -53,10 +52,11 @@ fn play_game(stream: &TcpStream) {
     thread::spawn(move || {
         let mut reader = BufReader::new(&network_reader);
         loop {
+            let mut message = String::new();
             match BufRead::read_line(&mut reader, &mut message) {
                 Ok(n) => {
                     if n != 0 {
-                        print!("message: {}", message.trim());
+                        print!("{}", message);
                     }
                 },
                 _ => {},
@@ -84,6 +84,7 @@ fn main() {
         }
         println!("\nPress Space bar to slap the pile");
         println!("Press 'Q' at anytime to quit");
+        println!();
     }
     
     // Connect to the server
