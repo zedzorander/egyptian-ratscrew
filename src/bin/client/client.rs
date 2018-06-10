@@ -59,7 +59,7 @@ fn play_game(stream: &TcpStream) {
                         print!("{}", message);
                     }
                 },
-                _ => {},
+                _ => return,
             }
         }
     });

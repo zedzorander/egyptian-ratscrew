@@ -362,8 +362,35 @@ fn find_pair_run(left: Card, middle: Card, right: Card) -> bool {
 
 /// Determines if the ranks of cards differ by one
 fn find_abs(left: Card, right: Card) -> bool {
+    // If left is an ace, compare it as a 1 and a 14 and return true if
+    // cards are sequential
+    if is_ace(left) {
+        let value_low = left.rank.value() as i32 - right.rank.value() as i32;
+        let value_high = 14 as i32 - right.rank.value() as i32;
+        if value_low.abs() == 1 || value_high.abs() == 1 {
+            return true;
+        }
+    }
+    // If right is an ace, compare it as a 1 and a 14 and return true if 
+    // cards are sequential
+    if is_ace(right) {
+        let value_low = left.rank.value() as i32 - right.rank.value() as i32;
+        let value_high = left.rank.value() as i32 - 14 as i32;
+        if value_low.abs() == 1 || value_high.abs() == 1 {
+            return true;
+        }
+    }
+    // Otherwise just check for sequentail cards
     let value = left.rank.value() as i32 - right.rank.value() as i32;
     if value.abs() == 1 {
+        return true;
+    }
+    false
+}
+
+/// Check a card for an ace value
+fn is_ace(card: Card) -> bool {
+    if card.rank.value() == 1 {
         return true;
     }
     false
