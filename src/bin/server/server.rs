@@ -10,12 +10,13 @@ use rand::{Rng, random};
 use std::net::{TcpListener, /*TcpStream, */SocketAddr};
 use std::io::{BufReader, /*BufWriter, */Write, BufRead, Error, ErrorKind};
 
+/// Contains the players hand and side pile
 struct PlayerState {
     hand: Vec<Card>,
     side_pile: Vec<Card>,
 }
 
-
+/// Creates a PlayerState
 impl PlayerState {
     fn new() -> Self {
         PlayerState {
@@ -25,30 +26,45 @@ impl PlayerState {
     }
 }
 
+/// Trait for a Player
 trait Player {
+    // Adds a single card to the hand
+    // Used when dealing
     fn add_to_hand(&mut self, Card) ->
         Result<(), Error>;
 
+    // Adds a vector of cards to the side pile
     fn add_to_side_pile(&mut self, &mut Vec<Card>) ->
         Result<(), Error>;
 
+    // Adds the side pile to the hand when hand is empty
+    fn add_side_pile_to_hand(&mut self) -> Result<(), Error>;
+
+    // Plays a card from the players hand
     fn play_card(&mut self, &mut Vec<Card>, &mut BufRead, &mut Write, &mut Player) -> 
         Result<Vec<Card>, Error>;
 
-    fn won(&mut self) -> bool;
+    // Determines if a player has all the cards
+    fn won(&mut self, &mut Write) -> bool;
 
+    // Makes the PlayerState read only visible
     fn state(&self) -> &PlayerState;
 }
 
+/// The player
 struct HumanPlayer(PlayerState);
 
+/// Player trait implementation for player
 impl Player for HumanPlayer {
+    // Adds a single card to the hand
+    // Used when dealing
     fn add_to_hand(&mut self, card: Card) ->
         Result<(), Error> {
             self.0.hand.push(card);
             Ok(())
     }
 
+    // Adds a vector of cards to the side pile
     fn add_to_side_pile(&mut self, pile: &mut Vec<Card>) ->
         Result<(), Error> {
         for _ in 0..pile.len() {
@@ -57,6 +73,16 @@ impl Player for HumanPlayer {
         Ok(())
     }
 
+    // Adds the side pile to the hand when hand is empty
+    fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        self.0.side_pile = shuffle_deck(self.0.side_pile.to_vec());
+        for _ in 0..self.0.side_pile.len() {
+            self.0.hand.push(self.0.side_pile.pop().unwrap());
+        }
+        Ok(())
+    }
+
+    // Plays a card from the players hand
     fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
         mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
@@ -68,6 +94,9 @@ impl Player for HumanPlayer {
 
             match response.trim() {
                 "c" => {
+                    if self.0.hand.is_empty() {
+                        self.add_side_pile_to_hand().ok();
+                    }
                     // Add card to pile
                     let card = self.0.hand.pop().unwrap();
                     pile.push(card);
@@ -85,7 +114,7 @@ impl Player for HumanPlayer {
         send_pile(&pile, &mut writer);
         
         for c in pile.iter() {
-            println!("{:?}", c);
+            println!("{}", c);
         }
 
         // Add stall here
@@ -107,10 +136,10 @@ impl Player for HumanPlayer {
                     // MachinePlayer's pile
                     if test_pile(&pile) {
                         println!("HumanPlayer combination found");
-                        self.add_to_side_pile(&mut pile);
+                        self.add_to_side_pile(&mut pile).ok();
                     } else {
                         println!("HumanPlayer no combination found");
-                        opponent.add_to_side_pile(&mut pile);
+                        opponent.add_to_side_pile(&mut pile).ok();
                     }
                     return Ok(pile.to_vec());
                 },
@@ -122,25 +151,36 @@ impl Player for HumanPlayer {
         Ok(pile.to_vec())
     }
 
-    fn won(&mut self) -> bool {
-        return  self.0.hand.len() == 52
+    // Determines if a player has all the cards
+    fn won(&mut self, writer: &mut Write) -> bool {
+        if self.0.hand.len() == 52 {
+            writeln!(writer, "Congratulations!! You won the game!!\r\n").ok();
+            writer.flush().ok();
+            return true;
+        }
+        false
     }
 
+    // Makes the PlayerState read only visible
     fn state(&self) -> &PlayerState {
         &self.0
     }
 }
 
-
+/// The machine player
 struct MachinePlayer(PlayerState);
 
+/// Player trait implementation for machine player
 impl Player for MachinePlayer {
+    // Adds a single card to the hand
+    // Used when dealing
     fn add_to_hand(&mut self, card: Card) ->
         Result<(), Error> {
             self.0.hand.push(card);
             Ok(())
     }
     
+    // Adds a vector of cards to the side pile
     fn add_to_side_pile(&mut self, pile: &mut Vec<Card>) ->
         Result<(), Error> {
         for _ in 0..pile.len() {
@@ -149,6 +189,16 @@ impl Player for MachinePlayer {
         Ok(())
     }
 
+    // Adds the side pile to the hand when hand is empty
+    fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        self.0.side_pile = shuffle_deck(self.0.side_pile.to_vec());
+        for _ in 0..self.0.side_pile.len() {
+            self.0.hand.push(self.0.side_pile.pop().unwrap());
+        }
+        Ok(())
+    }
+    
+    // Plays a card from the players hand
     fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
         mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
@@ -160,7 +210,7 @@ impl Player for MachinePlayer {
         send_pile(&pile, &mut writer);
 
         for c in pile.iter() {
-            println!("{:?}", c);
+            println!("{}", c);
         }
 
         // Add stall here
@@ -177,10 +227,10 @@ impl Player for MachinePlayer {
                 println!("space pressed");
                 if test_pile(&pile) {
                     println!("MachinePlayer combination found");
-                    opponent.add_to_side_pile(&mut pile);
+                    opponent.add_to_side_pile(&mut pile).ok();
                 } else {
                     println!("MachinePlayer no combination found");
-                    self.add_to_side_pile(&mut pile);
+                    self.add_to_side_pile(&mut pile).ok();
                 }
                 return Ok(pile.to_vec());
             },
@@ -191,15 +241,23 @@ impl Player for MachinePlayer {
         Ok(pile.to_vec())
     }
 
-    fn won(&mut self) -> bool {
-        return  self.0.hand.len() == 52
+    // Determines if a player has all the cards
+    fn won(&mut self, writer: &mut Write) -> bool {
+        if self.0.hand.len() == 52 {
+            writeln!(writer, "Oh, to bad. You lost!!").ok();
+            writer.flush().ok();
+            return true;
+        }
+        false
     }
 
+    // Makes the PlayerState read only visible
     fn state(&self) -> &PlayerState {
         &self.0
     }
 }
 
+/// Sends the top cards of the pile to the player (max of three)
 fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
  
     // send top three cards of the pile to client
@@ -403,19 +461,6 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
 
     deal_hands(&mut deck, &mut machine, &mut human);
     
-    /*
-    println!("Machine hand:");
-    for i in 0..26 {
-        println!("{}", machine.state().hand[i]);
-    }
-    println!();
-    println!("Human hand:");
-    for i in 0..26 {
-        println!("{}", human.state().hand[i]);
-    }
-    println!();
-    */
-
     // Let the client who plays first
     let mut turn = random::<usize>() % 2;
     if turn == 0 {
@@ -437,21 +482,23 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         if turn % 2 == 0 {
             player = &mut machine;
             opponent = &mut human;
-            write!(writer, "Computer's turn!\r\n").ok();
+            writeln!(writer, "Computer's turn!\r\n").ok();
             writer.flush().ok();
         } else {
             player = &mut human;
             opponent = &mut machine;
-            write!(writer, "Your turn!\nPress c to play card\r\n").ok();
+            writeln!(writer, "Your turn!\nPress c to play card\r\n").ok();
             writer.flush().ok();
         }
 
+        // Play a card from players hand
         match player.play_card(&mut pile, &mut reader, &mut writer, opponent) {
             Ok(updated_pile) => pile = updated_pile,
             Err(_err) => return Ok(()),
         }
 
-        if player.won() {
+        // Determine if a player has won the game
+        if player.won(&mut writer) {
             break;
         }
         turn += 1;
