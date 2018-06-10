@@ -7,14 +7,14 @@ extern crate card;
 extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::{Rng, random};
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::io::{BufReader, BufWriter, Write, BufRead, Error};
-//use std::process::Command;
+use std::net::{TcpListener, /*TcpStream, */SocketAddr};
+use std::io::{BufReader, /*BufWriter, */Write, BufRead, Error, ErrorKind};
 
 struct PlayerState {
     hand: Vec<Card>,
     side_pile: Vec<Card>,
 }
+
 
 impl PlayerState {
     fn new() -> Self {
@@ -32,9 +32,8 @@ trait Player {
     fn add_to_side_pile(&mut self, &mut Vec<Card>) ->
         Result<(), Error>;
 
-    fn play_card<T>(&mut self, &mut Vec<Card>, T) -> 
-        Result<Vec<Card>, Error>
-        where T: Write;
+    fn play_card(&mut self, &mut Vec<Card>, &mut BufRead, &mut Write, &mut Player) -> 
+        Result<Vec<Card>, Error>;
 
     fn won(&mut self) -> bool;
 
@@ -58,13 +57,68 @@ impl Player for HumanPlayer {
         Ok(())
     }
 
-    fn play_card<T>(&mut self, pile: &mut Vec<Card>, mut _writer: T) ->
-        Result<Vec<Card>, Error>
-        where T: Write
+    fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
+        mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
-        /*loop {
-            
-        }*/
+        // Read input from player
+        loop {
+            let mut response = String::new();
+            reader.read_line(&mut response).ok();
+            println!("play_card response: {}", response);
+
+            match response.trim() {
+                "c" => {
+                    // Add card to pile
+                    let card = self.0.hand.pop().unwrap();
+                    pile.push(card);
+                    break;
+                }
+                "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+                _ => {
+                    writeln!(writer, "Invalid key! Press c to play card\r\n").ok();
+                    writer.flush().ok();
+                },
+            };
+        }
+
+        // Send updated top three cards of the pile to client
+        send_pile(&pile, &mut writer);
+        
+        for c in pile.iter() {
+            println!("{:?}", c);
+        }
+
+        // Add stall here
+
+
+        //loop {
+            // Wait for response from player
+            let mut response = String::new();
+            reader.read_line(&mut response).ok();
+            println!("HumanPlayer response: {}", response.trim());
+        
+            // Determine response action
+            match response.trim() {
+                // If player thinks there's a combination
+                "space" => {
+                    println!("space pressed");
+                    // Check if there's a combination and add pile to
+                    // HumanPlayer's hand, otherwise add pile to 
+                    // MachinePlayer's pile
+                    if test_pile(&pile) {
+                        println!("HumanPlayer combination found");
+                        self.add_to_side_pile(&mut pile);
+                    } else {
+                        println!("HumanPlayer no combination found");
+                        opponent.add_to_side_pile(&mut pile);
+                    }
+                    return Ok(pile.to_vec());
+                },
+                "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+                _ => {}
+            };
+        //}
+        
         Ok(pile.to_vec())
     }
 
@@ -95,44 +149,45 @@ impl Player for MachinePlayer {
         Ok(())
     }
 
-    fn play_card<T>(&mut self, pile: &mut Vec<Card>, mut _writer: T) ->
-        Result<Vec<Card>, Error>
-        where T: Write
+    fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
+        mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
-        /*
-        // Send top three cards of pile to server
-        // send_pile(*pile, socket);
-
         // Add card to pile
-        let card = machine.hand.pop().unwrap();
+        let card = self.0.hand.pop().unwrap();
         pile.push(card);
 
         // Send updated top three cards of the pile to client
-        send_pile(*pile, socket);
+        send_pile(&pile, &mut writer);
 
-        // Create a stall (may not work because of spawn()),
-        // a BufReader, and BufWriter to communicate with client
-        let mut child = Command::new("sleep").arg("3").spawn().unwrap();
-        let reader = BufReader::new(socket);
-        let writer = BufWriter::new(socket);
-
-        //let output = stall.wait().unwrap();
-        //println!("output: {:?}", output);
-        
-        // If combination exists
-        if test_pile(&pile) {
-            // Stall and wait for client event.
-            // Take pile if stall ends w/o event
-            let output = stall.wait().unwrap();
-            
-        } else {
-            // Stall and wait for client event.
-            // Take pile if event happens
-            let output = stall.wait().unwrap();
-
-            // add pile to machine player hand
+        for c in pile.iter() {
+            println!("{:?}", c);
         }
-        */
+
+        // Add stall here
+        
+
+        // wait for response from player
+        let mut response = String::new();
+        let _ = reader.read_line(&mut response);
+        println!("MachinePlayer response: {}", response.trim());
+
+        // Determine response from player
+        match response.trim() {
+            "space" => {
+                println!("space pressed");
+                if test_pile(&pile) {
+                    println!("MachinePlayer combination found");
+                    opponent.add_to_side_pile(&mut pile);
+                } else {
+                    println!("MachinePlayer no combination found");
+                    self.add_to_side_pile(&mut pile);
+                }
+                return Ok(pile.to_vec());
+            },
+            "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+            _ => {}
+        }
+
         Ok(pile.to_vec())
     }
 
@@ -144,37 +199,39 @@ impl Player for MachinePlayer {
         &self.0
     }
 }
-/*
-fn send_pile(pile: Vec<Card>, socket: &TcpStream) {
-    let mut writer = BufWriter::new(socket);
-    
+
+fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
+ 
     // send top three cards of the pile to client
-    if pile.len() == 0 {}
+    if pile.len() == 0 {
+        writeln!(writer, "Pile is empty\r\n").ok();
+        writer.flush().ok();
+    }
     else if pile.len() == 1 {
         // send card
-        writeln!(writer, "Pile:").ok();
+        writeln!(writer, "Pile:\r\n").ok();
         //writer.flush();
-        writeln!(writer, "{}", pile[0]).unwrap();
+        writeln!(writer, "{}\r\n", pile[0]).unwrap();
         writer.flush().ok();
     }
     else if pile.len() == 2 {
         // send cards
-        writeln!(writer, "Pile:").ok();
+        writeln!(writer, "Pile:\r\n").ok();
         for c in 0..2 {
             // send top two cards on pile
-            writeln!(writer, "{:?}", pile[c]).unwrap();
+            writeln!(writer, "{}\r\n", pile[c]).unwrap();
             writer.flush().ok();
         }
     }
     else {
         for c in 0..3 {
             // send top three cards on pile
-            writeln!(writer, "{:?}", pile[c]).unwrap();
+            writeln!(writer, "{}\r\n", pile[c]).unwrap();
             writer.flush().ok();
         }
     }
 }
-*/
+
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
     let mut deck: Vec<Card> = Vec::new();
@@ -200,7 +257,7 @@ fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
 }
 
 // COMBINATION TESTS BELOW HERE
-/*
+
 /// Top and second card have same rank
 fn is_pair(pile: &Vec<Card>) -> bool {
     pile[0] == pile[1]
@@ -285,65 +342,42 @@ fn is_run(pile: &Vec<Card>) -> bool {
     }
     false
 }
-*/
-/*
+
 /// Tests for different combinations
 fn test_pile(pile: &Vec<Card>) -> bool {
-    if pile.len() == 0 {
+    // If pile has 0 or 1 card, there is no combination
+    if pile.len() < 2 {
         return false
     }
-    if is_pair(pile) {
-        /*println!("There is a pair:");
-        for i in &pile[0..2] {
-            println!("{}", i);
+    // If pile has 2 or more cards, check for combinations that
+    // require at least 2 cards
+    if pile.len() >= 2 {
+        if is_pair(pile) {
+            return true;
         }
-        println!();
-        */
-        return true;
-    }
-    // tests for a pair sandwich
-    else if is_sandwich(pile) {
-        /*println!("There is a sandwich:");
-        for i in &pile[0..3] {
-            println!("{}", i);
+        // tests for a sixty-nine combo
+        else if is_sixty_nine(pile) {
+            return true;
         }
-        println!();
-        */
-        return true;
-    }
-    // tests for a sixty-nine combo
-    else if is_sixty_nine(pile) {
-        /*println!("There is a sixty nine:");
-        for i in &pile[0..2] {
-            println!("{}", i);
+        // If pile has more than two cards, check for combinations
+        // that require at least three cards
+        if pile.len() > 2 {
+            // tests for a pair sandwich
+            if is_sandwich(pile) {
+                return true;
+            }
+            // tests for a sixty-nine combo
+            else if is_sixty_nine_sandwich(pile) {
+                return true;
+            }
+            // tests for a run of three cards
+            else if is_run(pile) {
+                return true;
+            }
         }
-        println!();
-        */
-        return true;
-    }
-    // tests for a sixty-nine combo
-    else if is_sixty_nine_sandwich(pile) {
-        /*println!("There is a sixty nine sandwich:");
-        for i in &pile[0..3] {
-            println!("{}", i);
-        }
-        println!();
-        */
-        return true;
-    }
-    // tests for a run of three cards
-    else if is_run(pile) {
-        /*println!("There is a run:");
-        for i in &pile[0..3] {
-            println!("{}", i);
-        }
-        println!();
-        */
-        return true;
-    }
+    } 
     false
 }
-*/
 
 /// Deals the cards to the client and server hands
 //fn deal_hands(deck: &mut Vec<Card>, socket: &TcpStream) -> Vec<Card> {
@@ -358,18 +392,18 @@ fn deal_hands(deck: &mut Vec<Card>, machine: &mut MachinePlayer,
 }
 
 /// Game control function
-fn play_game<T, U>(mut reader: T, mut writer: U) ->
-    Result<(), Error>
-    where T: BufRead, U: Write {
+fn play_game<T, U>(mut reader: T, mut writer: U) -> 
+    Result<(), Error> 
+    where T: BufRead, U: Write 
+{
     let mut deck: Vec<Card> = shuffle_deck(make_deck());
     let mut pile: Vec<Card> = Vec::new();
-    let mut response = String::new();
     let mut machine = MachinePlayer(PlayerState::new());
     let mut human = HumanPlayer(PlayerState::new());
 
     deal_hands(&mut deck, &mut machine, &mut human);
-
     
+    /*
     println!("Machine hand:");
     for i in 0..26 {
         println!("{}", machine.state().hand[i]);
@@ -380,44 +414,49 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         println!("{}", human.state().hand[i]);
     }
     println!();
-    
-    /*
+    */
+
     // Let the client who plays first
-    let turn = random::<usize>() % 2;
+    let mut turn = random::<usize>() % 2;
     if turn == 0 {
-        writeln!(writer, "Computer goes first!");
+        write!(writer, "Computer goes first!\r\n").ok();
         writer.flush().ok();
     } else {
-        writeln!(writer, "You go first!\r\nPress c to play card");
+        write!(writer, "You go first!\r\nPress c to play card\r\n").ok();
         writer.flush().ok();
     }
-    */
-    /*
+    
+    
     loop {
-
+        //let mut response = String::new();
         let player: &mut Player;
-        let opponent: &Player;
+        let opponent: &mut Player;
+        
         // Machine plays if turn == 0
         // Human plays if turn == 1
-        if turn == 0 {
+        if turn % 2 == 0 {
             player = &mut machine;
-            opponent = &human;
-            writeln!(writer, "Computer's turn!");
+            opponent = &mut human;
+            write!(writer, "Computer's turn!\r\n").ok();
             writer.flush().ok();
         } else {
             player = &mut human;
-            opponent = &machine;
-            writeln!(writer, "Your turn!");
+            opponent = &mut machine;
+            write!(writer, "Your turn!\nPress c to play card\r\n").ok();
             writer.flush().ok();
         }
-        // player plays card
 
+        match player.play_card(&mut pile, &mut reader, &mut writer, opponent) {
+            Ok(updated_pile) => pile = updated_pile,
+            Err(_err) => return Ok(()),
+        }
 
-        //pile = player.play_card(&mut pile, &mut writer)
-            
-        //test_pile(&pile);
+        if player.won() {
+            break;
+        }
+        turn += 1;
     }
-    */
+    
     Ok(())
 }
 
@@ -428,9 +467,9 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            let mut reader = BufReader::new(&socket);
-            let mut writer = BufWriter::new(&socket);
-            play_game(reader, writer);
+            let mut writer = socket.try_clone().unwrap();
+            let mut reader = BufReader::new(socket);
+            play_game(reader, writer).ok();
         }
         Err(e) => {
             println!("Error {}", e);
