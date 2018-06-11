@@ -76,6 +76,10 @@ impl Player for HumanPlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        // If side pile is empty, then player loses
+        if self.0.side_pile.is_empty() {
+            return Err(Error::new(ErrorKind::Other, "Your hand is empty. Computer wins!!"));
+        }
         self.0.side_pile = shuffle_deck(self.0.side_pile.to_vec());
         for _ in 0..self.0.side_pile.len() {
             self.0.hand.push(self.0.side_pile.pop().unwrap());
@@ -95,7 +99,10 @@ impl Player for HumanPlayer {
             match response.trim() {
                 "c" => {
                     if self.0.hand.is_empty() {
-                        self.add_side_pile_to_hand().ok();
+                        match self.add_side_pile_to_hand() {
+                            Ok(()) => {},
+                            Err(err) => return Err(err),
+                        }
                     }
                     // Add card to pile
                     let card = self.0.hand.pop().unwrap();
@@ -194,6 +201,10 @@ impl Player for MachinePlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        // If side pile is empty, then computer loses
+        if self.0.side_pile.is_empty() {
+            return Err(Error::new(ErrorKind::Other, "Computers hand is empty. You win!!"));
+        }
         self.0.side_pile = shuffle_deck(self.0.side_pile.to_vec());
         for _ in 0..self.0.side_pile.len() {
             self.0.hand.push(self.0.side_pile.pop().unwrap());
@@ -205,6 +216,15 @@ impl Player for MachinePlayer {
     fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
         mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
+        // Check if hand is empty
+        // Refill with side pile if it is
+        if self.0.hand.is_empty() {
+            match self.add_side_pile_to_hand() {
+                Ok(()) => {},
+                Err(err) => return Err(err),
+            }
+        }
+
         // Add card to pile
         let card = self.0.hand.pop().unwrap();
         pile.push(card);
@@ -217,9 +237,6 @@ impl Player for MachinePlayer {
             println!("{}", c);
         }
         println!();
-
-        // Add stall here
-        
 
         // wait for response from player
         let mut response = String::new();
@@ -291,6 +308,7 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
             // send top two cards on pile
             write!(writer, "{}\r\n", c).unwrap();
         }
+        writeln!(writer, "").ok();
         writer.flush().ok();
     }
     else {
@@ -302,6 +320,7 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
             // send top three cards on pile
             write!(writer, "{}\r\n", c).unwrap();
         }
+        writeln!(writer, "").ok();
         writer.flush().ok();
     }
 }
@@ -334,12 +353,12 @@ fn shuffle_deck(mut deck: Vec<Card>) -> Vec<Card> {
 
 /// Top and second card have same rank
 fn is_pair(pile: &Vec<Card>) -> bool {
-    pile[0] == pile[1]
+    pile[pile.len() - 1] == pile[pile.len() - 2]
 }
 
 /// Top and third card have same rank
 fn is_sandwich(pile: &Vec<Card>) -> bool {
-    pile[0] == pile[2]
+    pile[pile.len() - 1] == pile[pile.len() - 3]
 }
 
 /// Checks if left and right cards form (6, 9) pairing
@@ -355,12 +374,12 @@ fn is_sixty_nine_match(left: Card, right: Card) -> bool {
 
 /// Top card and second card have ranks of 6 && 9 or 9 && 6
 fn is_sixty_nine(pile: &Vec<Card>) -> bool {
-    is_sixty_nine_match(pile[0], pile[1])
+    is_sixty_nine_match(pile[pile.len() - 1], pile[pile.len() - 2])
 }
 
 /// Top card and third card have ranks 6 && 9 or 9 && 6
 fn is_sixty_nine_sandwich(pile: &Vec<Card>) -> bool {
-    is_sixty_nine_match(pile[0], pile[2])
+    is_sixty_nine_match(pile[pile.len() - 1], pile[pile.len() - 3])
 }
 
 /// Determines if any of the three cards form a pair
@@ -410,9 +429,9 @@ fn is_ace(card: Card) -> bool {
 
 /// Top three cards form a run in any order
 fn is_run(pile: &Vec<Card>) -> bool {
-    let left = pile[0];
-    let middle = pile[1];
-    let right = pile[2];
+    let left = pile[pile.len() - 1];
+    let middle = pile[pile.len() - 2];
+    let right = pile[pile.len() - 3];
 
     // If no cards have equal rank, search for a run
     if !find_pair_run(left, middle, right) {
@@ -537,7 +556,10 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         // Play a card from players hand
         match player.play_card(&mut pile, &mut reader, &mut writer, opponent) {
             Ok(updated_pile) => pile = updated_pile,
-            Err(_err) => return Ok(()),
+            Err(err) => {
+                writeln!(writer, "{}\r\n", err);
+                return Ok(());
+            }
         }
 
         // Determine if a player has won the game

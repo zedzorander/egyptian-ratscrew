@@ -37,10 +37,16 @@ fn play_game(stream: &TcpStream) {
                 }
                 // Press 'q' to quit at anytime
                 Key::Char('q') => {
-                    println!();
-                    println!("Thank you for playing!\r\n");
+                    let key_reader = key_writer.try_clone().unwrap();
+                    let mut reader = BufReader::new(&key_reader);
+                    let mut message = String::new();
+                    //println!("Thank you for playing!\r\n");
                     write!(key_writer, "q").ok();
                     key_writer.flush().unwrap();
+                    
+                    BufRead::read_line(&mut reader, &mut message).ok();
+                    println!();
+                    println!("{}", message);
                     return;
                 },
                 _ => println!("Invalid key pressed\r\n")
