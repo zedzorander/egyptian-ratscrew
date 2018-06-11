@@ -9,6 +9,7 @@ use card::{Card, Rank::*, Suit::*};
 use rand::{Rng, random};
 use std::net::{TcpListener, SocketAddr};
 use std::io::{BufReader, Write, BufRead, Error, ErrorKind};
+use std::time::Duration;
 
 /// Contains the players hand and side pile
 struct PlayerState {
@@ -118,9 +119,6 @@ impl Player for HumanPlayer {
         }
         println!();
 
-        // Add stall here
-
-
         // Wait for response from player
         let mut response = String::new();
         reader.read_line(&mut response).ok();
@@ -133,16 +131,24 @@ impl Player for HumanPlayer {
                 // HumanPlayer's hand, otherwise add pile to 
                 // MachinePlayer's pile
                 if test_pile(&pile) {
-                    println!("HumanPlayer combination found");
+                    writeln!(writer, "Combination found. You won the pot!!\r\n").ok();
+                    writer.flush().ok();
                     self.add_to_side_pile(&mut pile).ok();
                 } else {
-                    println!("HumanPlayer no combination found");
+                    writeln!(writer, "No combination. Computer gets the pot!!\r\n").ok();
+                    writer.flush().ok();
                     opponent.add_to_side_pile(&mut pile).ok();
                 }
                 return Ok(pile.to_vec());
             },
             "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
-            _ => {}
+            _ => {
+                if test_pile(&pile) {
+                    writeln!(writer, "Combination found. Computer gets the pot!!\r\n").ok();
+                    writer.flush().ok();
+                    opponent.add_to_side_pile(&mut pile).ok();
+                }
+            }
         };
         
         Ok(pile.to_vec())
@@ -223,16 +229,24 @@ impl Player for MachinePlayer {
         match response.trim() {
             "space" => {
                 if test_pile(&pile) {
-                    println!("MachinePlayer combination found");
+                    writeln!(writer, "Combination found. You get the pot!!\r\n").ok();
+                    writer.flush().ok();
                     opponent.add_to_side_pile(&mut pile).ok();
                 } else {
-                    println!("MachinePlayer no combination found");
+                    writeln!(writer, "No combination found. Computer gets the pot!!\r\n").ok();
+                    writer.flush().ok();
                     self.add_to_side_pile(&mut pile).ok();
                 }
                 return Ok(pile.to_vec());
             },
             "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
-            _ => {}
+            _ => {
+                if test_pile(&pile) {
+                    writeln!(writer, "Combination found. Computer gets the pot!!\r\n").ok();
+                    writer.flush().ok();
+                    self.add_to_side_pile(&mut pile).ok();
+                }
+            }
         }
 
         Ok(pile.to_vec())
@@ -274,7 +288,6 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
         
         // send cards
         for c in rev.iter() {
-            println!("inside len = 2 for loop");
             // send top two cards on pile
             write!(writer, "{}\r\n", c).unwrap();
         }
@@ -286,7 +299,6 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
         
         // send cards
         for c in rev.iter() {
-            println!("inside len = 3 for loop");
             // send top three cards on pile
             write!(writer, "{}\r\n", c).unwrap();
         }
@@ -546,7 +558,9 @@ fn main() {
     match listener.accept() {
         Ok((socket, _addr)) => {
             let mut writer = socket.try_clone().unwrap();
-            let mut reader = BufReader::new(socket);
+            let mut reader = BufReader::new(&socket);
+            socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
+
             play_game(reader, writer).ok();
         }
         Err(e) => {
