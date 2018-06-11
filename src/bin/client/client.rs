@@ -45,6 +45,7 @@ fn play_game(stream: &TcpStream) {
                     
                     return;
                 },
+                Key::Char('\0') => {},
                 _ => println!("Invalid key pressed\r\n")
             }
         }
@@ -84,7 +85,6 @@ fn main() {
         let prompt = input.bytes().nth(0);
         match prompt.unwrap() as char {
             'p' => valid_input = true,
-            'q' => panic!(),
             _ => println!("Incorrect character! Please try again.")
         }
         println!("\nPress Space bar to slap the pile");

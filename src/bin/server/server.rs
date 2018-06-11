@@ -10,6 +10,7 @@ use rand::{Rng, random};
 use std::net::{TcpListener, SocketAddr, TcpStream};
 use std::io::{BufReader, Write, BufRead, Error, ErrorKind};
 use std::time::Duration;
+use std::process::Command;
 
 /// Contains the players hand and side pile
 struct PlayerState {
@@ -45,6 +46,10 @@ trait Player {
     fn play_card(&mut self, &mut Vec<Card>, &mut BufRead, &mut Write, &mut Player) -> 
         Result<Vec<Card>, Error>;
 
+    // Check for slap
+    fn slap_check(&mut self, &mut Vec<Card>, &TcpStream, &mut Player) -> 
+        Result<Vec<Card>, Error>;
+
     // Determines if a player has all the cards
     fn won(&mut self, &mut Write) -> bool;
 
@@ -76,6 +81,7 @@ impl Player for HumanPlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        println!("in human add_side_pile_to_hand");
         // If side pile is empty, then player loses
         if self.0.side_pile.is_empty() {
             return Err(Error::new(ErrorKind::Other, "Your hand is empty. Computer wins!!"));
@@ -88,8 +94,8 @@ impl Player for HumanPlayer {
     }
 
     // Plays a card from the players hand
-    fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
-        mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
+    fn play_card(&mut self, pile: &mut Vec<Card>, reader: &mut BufRead, 
+        mut writer: &mut Write, _opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
         // Read input from player
         loop {
@@ -126,6 +132,21 @@ impl Player for HumanPlayer {
         }
         println!();
 
+        
+        Ok(pile.to_vec())
+    }
+
+    // Check for slap
+    fn slap_check(&mut self, mut pile: &mut Vec<Card>, socket: &TcpStream, 
+        opponent: &mut Player) -> Result<Vec<Card>, Error> {
+        
+        // Edit the time computer waits for input
+        let rand = rand::thread_rng().gen_range(1, 3);
+        socket.set_read_timeout(Some(Duration::new(rand, 0))).ok();
+        let mut reader = BufReader::new(socket);
+        let mut writer = socket.try_clone().unwrap();
+        let default_time = Duration::new(3, 0);
+
         // Wait for response from player
         let mut response = String::new();
         reader.read_line(&mut response).ok();
@@ -146,6 +167,7 @@ impl Player for HumanPlayer {
                     writer.flush().ok();
                     opponent.add_to_side_pile(&mut pile).ok();
                 }
+                socket.set_read_timeout(Some(default_time)).ok();
                 return Ok(pile.to_vec());
             },
             "q" => return Err(Error::new(ErrorKind::Other, "Player quits!")),
@@ -154,13 +176,18 @@ impl Player for HumanPlayer {
                     writeln!(writer, "Combination found. Computer gets the pot!!\r\n").ok();
                     writer.flush().ok();
                     opponent.add_to_side_pile(&mut pile).ok();
+                    socket.set_read_timeout(Some(default_time)).ok();
+                    return Ok(pile.to_vec());
                 }
             }
         };
-        
+        socket.set_read_timeout(Some(default_time)).ok();
+        let time: String = (3 - rand).to_string();
+        let mut stall = Command::new("sleep").arg(time).spawn().unwrap();
+        stall.wait().unwrap();
         Ok(pile.to_vec())
     }
-
+    
     // Determines if a player has all the cards
     fn won(&mut self, writer: &mut Write) -> bool {
         if self.0.hand.len() == 52 {
@@ -201,6 +228,7 @@ impl Player for MachinePlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
+        println!("in machine add_side_pile_to_hand");
         // If side pile is empty, then computer loses
         if self.0.side_pile.is_empty() {
             return Err(Error::new(ErrorKind::Other, "Computers hand is empty. You win!!"));
@@ -213,8 +241,8 @@ impl Player for MachinePlayer {
     }
     
     // Plays a card from the players hand
-    fn play_card(&mut self, mut pile: &mut Vec<Card>, reader: &mut BufRead, 
-        mut writer: &mut Write, opponent: &mut Player) -> Result<Vec<Card>, Error>
+    fn play_card(&mut self, pile: &mut Vec<Card>, _reader: &mut BufRead, 
+        mut writer: &mut Write, _opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
         // Check if hand is empty
         // Refill with side pile if it is
@@ -237,35 +265,59 @@ impl Player for MachinePlayer {
             println!("{}", c);
         }
         println!();
-            
-        // wait for response from player
-        let mut response = String::new();
-        let _ = reader.read_line(&mut response);
+        
+        Ok(pile.to_vec())
+    }
 
-        // Determine response from player
+    // Check for slap
+    fn slap_check(&mut self, mut pile: &mut Vec<Card>, socket: &TcpStream,
+        opponent: &mut Player) -> Result<Vec<Card>, Error> {
+
+        // Edit time computer waits for input
+        let rand = rand::thread_rng().gen_range(1, 3);
+        socket.set_read_timeout(Some(Duration::new(rand, 0))).ok();
+        let mut reader = BufReader::new(socket);
+        let mut writer = socket.try_clone().unwrap();
+        let default_time = Duration::new(3, 0);
+
+        // Wait for response from player
+        let mut response = String::new();
+        reader.read_line(&mut response).ok();
+        
+        // Determine response action
         match response.trim() {
+            // If player thinks there's a combination
             "space" => {
+                // Check if there's a combination and add pile to
+                // HumanPlayer's hand, otherwise add pile to 
+                // MachinePlayer's pile
                 if test_pile(&pile) {
-                    writeln!(writer, "Combination found. You get the pot!!\r\n").ok();
-                    writer.flush().ok();
-                    opponent.add_to_side_pile(&mut pile).ok();
-                } else {
-                    writeln!(writer, "No combination found. Computer gets the pot!!\r\n").ok();
+                    writeln!(writer, "Combination found. You won the pot!!\r\n").ok();
                     writer.flush().ok();
                     self.add_to_side_pile(&mut pile).ok();
+                } else {
+                    writeln!(writer, "No combination. Computer gets the pot!!\r\n").ok();
+                    writer.flush().ok();
+                    opponent.add_to_side_pile(&mut pile).ok();
                 }
+                socket.set_read_timeout(Some(default_time)).ok();
                 return Ok(pile.to_vec());
             },
-            "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+            "q" => return Err(Error::new(ErrorKind::Other, "Player quits!")),
             _ => {
                 if test_pile(&pile) {
                     writeln!(writer, "Combination found. Computer gets the pot!!\r\n").ok();
                     writer.flush().ok();
                     self.add_to_side_pile(&mut pile).ok();
+                    socket.set_read_timeout(Some(default_time)).ok();
+                    return Ok(pile.to_vec());
                 }
             }
         }
-
+        socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
+        let time: String = (3 - rand).to_string();
+        let mut stall = Command::new("sleep").arg(time).spawn().unwrap();
+        stall.wait().unwrap();
         Ok(pile.to_vec())
     }
 
@@ -569,6 +621,7 @@ fn play_game(socket: &TcpStream) ->
                 return Ok(());
             }
         }
+        player.slap_check(&mut pile, socket, opponent).ok();
 
         // Determine if a player has won the game
         if player.won(&mut writer) {
