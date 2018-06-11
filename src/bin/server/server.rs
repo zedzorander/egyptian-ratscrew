@@ -1,13 +1,13 @@
 // MIT License
 // Copyright (c) 2018 Cole Phares
-// Last Modified: 5/22/2018
+// Last Modified: 6/10/2018
 // Server side for online card game Egyptian RatScrew
 
 extern crate card;
 extern crate rand;
 use card::{Card, Rank::*, Suit::*};
 use rand::{Rng, random};
-use std::net::{TcpListener, SocketAddr};
+use std::net::{TcpListener, SocketAddr, TcpStream};
 use std::io::{BufReader, Write, BufRead, Error, ErrorKind};
 use std::time::Duration;
 
@@ -109,7 +109,7 @@ impl Player for HumanPlayer {
                     pile.push(card);
                     break;
                 }
-                "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+                "q" => return Err(Error::new(ErrorKind::Other, "Player quits!")),
                 _ => {
                     writeln!(writer, "Invalid key! Press c to play card\r\n").ok();
                     writer.flush().ok();
@@ -148,7 +148,7 @@ impl Player for HumanPlayer {
                 }
                 return Ok(pile.to_vec());
             },
-            "q" => return Err(Error::new(ErrorKind::Other, "Player quit")),
+            "q" => return Err(Error::new(ErrorKind::Other, "Player quits!")),
             _ => {
                 if test_pile(&pile) {
                     writeln!(writer, "Combination found. Computer gets the pot!!\r\n").ok();
@@ -237,7 +237,7 @@ impl Player for MachinePlayer {
             println!("{}", c);
         }
         println!();
-
+            
         // wait for response from player
         let mut response = String::new();
         let _ = reader.read_line(&mut response);
@@ -272,7 +272,7 @@ impl Player for MachinePlayer {
     // Determines if a player has all the cards
     fn won(&mut self, writer: &mut Write) -> bool {
         if self.0.hand.len() == 52 {
-            writeln!(writer, "Oh, to bad. You lost!!").ok();
+            writeln!(writer, "Oh, too bad. You lost!!").ok();
             writer.flush().ok();
             return true;
         }
@@ -512,15 +512,19 @@ fn deal_hands(deck: &mut Vec<Card>, machine: &mut MachinePlayer,
 }
 
 /// Game control function
-fn play_game<T, U>(mut reader: T, mut writer: U) -> 
+//fn play_game<T, U>(mut reader: T, mut writer: U) -> 
+fn play_game(socket: &TcpStream) ->
     Result<(), Error> 
-    where T: BufRead, U: Write 
+    //where T: BufRead, U: Write 
 {
     let mut deck: Vec<Card> = shuffle_deck(make_deck());
     let mut pile: Vec<Card> = Vec::new();
     let mut machine = MachinePlayer(PlayerState::new());
     let mut human = HumanPlayer(PlayerState::new());
+    let mut writer = socket.try_clone().unwrap();
+    let mut reader = BufReader::new(socket);
 
+    
     deal_hands(&mut deck, &mut machine, &mut human);
     
     // Let the client who plays first
@@ -535,6 +539,10 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
     
     
     loop {
+        //let rand: u64 = rand::thread_rng().gen_range(1, 3);
+        //socket.set_read_timeout(Some(Duration::new(rand, 0))).ok();
+        socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
+        
         //let mut response = String::new();
         let player: &mut Player;
         let opponent: &mut Player;
@@ -557,7 +565,7 @@ fn play_game<T, U>(mut reader: T, mut writer: U) ->
         match player.play_card(&mut pile, &mut reader, &mut writer, opponent) {
             Ok(updated_pile) => pile = updated_pile,
             Err(err) => {
-                writeln!(writer, "{}\r\n", err);
+                writeln!(writer, "{}\r\n", err).ok();
                 return Ok(());
             }
         }
@@ -579,11 +587,12 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            let mut writer = socket.try_clone().unwrap();
-            let mut reader = BufReader::new(&socket);
-            socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
+            //let mut writer = socket.try_clone().unwrap();
+            //let mut reader = BufReader::new(&socket);
+            //socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
 
-            play_game(reader, writer).ok();
+            //play_game(reader, writer).ok();
+            play_game(&socket).ok();
         }
         Err(e) => {
             println!("Error {}", e);

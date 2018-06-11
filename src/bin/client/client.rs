@@ -1,7 +1,7 @@
 // MIT License
 // Copyright (c) 2018 Cole Phares
-// Last Modified: 5/22/2018
-// Server side for online card game Egyptian RatScrew
+// Last Modified: 6/10/2018
+// Client side for online card game Egyptian RatScrew
 
 extern crate card;
 extern crate termion;
@@ -11,6 +11,7 @@ use termion::event::Key;
 use termion::raw::IntoRawMode;
 use termion::input::TermRead;
 use std::thread;
+//use std::time::Duration;
 
 /// Players game control
 fn play_game(stream: &TcpStream) {
@@ -37,16 +38,11 @@ fn play_game(stream: &TcpStream) {
                 }
                 // Press 'q' to quit at anytime
                 Key::Char('q') => {
-                    let key_reader = key_writer.try_clone().unwrap();
-                    let mut reader = BufReader::new(&key_reader);
-                    let mut message = String::new();
-                    //println!("Thank you for playing!\r\n");
+                    println!();
+                    println!("Thank you for playing!\r\n");
                     write!(key_writer, "q").ok();
                     key_writer.flush().unwrap();
                     
-                    BufRead::read_line(&mut reader, &mut message).ok();
-                    println!();
-                    println!("{}", message);
                     return;
                 },
                 _ => println!("Invalid key pressed\r\n")
@@ -63,6 +59,9 @@ fn play_game(stream: &TcpStream) {
                 Ok(n) => {
                     if n != 0 {
                         print!("{}", message);
+                        if message.contains("wins") {
+                            return;
+                        }
                     }
                 },
                 _ => return,
