@@ -10,7 +10,6 @@ use rand::{Rng, random};
 use std::net::{TcpListener, SocketAddr, TcpStream};
 use std::io::{BufReader, Write, BufRead, Error, ErrorKind};
 use std::time::Duration;
-use std::process::Command;
 
 /// Contains the players hand and side pile
 struct PlayerState {
@@ -81,7 +80,6 @@ impl Player for HumanPlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
-        println!("in human add_side_pile_to_hand");
         // If side pile is empty, then player loses
         if self.0.side_pile.is_empty() {
             return Err(Error::new(ErrorKind::Other, "Your hand is empty. Computer wins!!"));
@@ -99,12 +97,17 @@ impl Player for HumanPlayer {
     {
         // Read input from player
         loop {
+            writeln!(writer, "Your turn! Press c to play card\r\n").ok();
+            writer.flush().ok();
+            
             let mut response = String::new();
             reader.read_line(&mut response).ok();
 
             match response.trim() {
                 "c" => {
+                    // If humans hand is empty, check for side_pile
                     if self.0.hand.is_empty() {
+                        // Shuffle and add side_pile to hand
                         match self.add_side_pile_to_hand() {
                             Ok(()) => {},
                             Err(err) => return Err(err),
@@ -125,13 +128,6 @@ impl Player for HumanPlayer {
 
         // Send updated top three cards of the pile to client
         send_pile(&pile, &mut writer);
-        
-        println!("Current pile:");
-        for c in pile.iter() {
-            println!("{}", c);
-        }
-        println!();
-
         
         Ok(pile.to_vec())
     }
@@ -181,10 +177,15 @@ impl Player for HumanPlayer {
                 }
             }
         };
+        // Ignore any other incoming key events
+        let time = 3 - rand;
+        socket.set_read_timeout(Some(Duration::new(time, 0))).ok();
+        reader.read_line(&mut response).ok();
+        match response.trim() {
+            _ => {},
+        }
         socket.set_read_timeout(Some(default_time)).ok();
-        let time: String = (3 - rand).to_string();
-        let mut stall = Command::new("sleep").arg(time).spawn().unwrap();
-        stall.wait().unwrap();
+        
         Ok(pile.to_vec())
     }
     
@@ -228,7 +229,6 @@ impl Player for MachinePlayer {
 
     // Adds the side pile to the hand when hand is empty
     fn add_side_pile_to_hand(&mut self) -> Result<(), Error> {
-        println!("in machine add_side_pile_to_hand");
         // If side pile is empty, then computer loses
         if self.0.side_pile.is_empty() {
             return Err(Error::new(ErrorKind::Other, "Computers hand is empty. You win!!"));
@@ -244,6 +244,9 @@ impl Player for MachinePlayer {
     fn play_card(&mut self, pile: &mut Vec<Card>, _reader: &mut BufRead, 
         mut writer: &mut Write, _opponent: &mut Player) -> Result<Vec<Card>, Error>
     {
+        writeln!(writer, "Computer's turn!\r\n").ok();
+        writer.flush().ok();
+        
         // Check if hand is empty
         // Refill with side pile if it is
         if self.0.hand.is_empty() {
@@ -260,12 +263,6 @@ impl Player for MachinePlayer {
         // Send updated top three cards of the pile to client
         send_pile(&pile, &mut writer);
 
-        println!("Current pile:");
-        for c in pile.iter() {
-            println!("{}", c);
-        }
-        println!();
-        
         Ok(pile.to_vec())
     }
 
@@ -314,10 +311,15 @@ impl Player for MachinePlayer {
                 }
             }
         }
-        socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
-        let time: String = (3 - rand).to_string();
-        let mut stall = Command::new("sleep").arg(time).spawn().unwrap();
-        stall.wait().unwrap();
+        // Ignore any other incoming key events
+        let time = 3 - rand;
+        socket.set_read_timeout(Some(Duration::new(time, 0))).ok();
+        reader.read_line(&mut response).ok();
+        match response.trim() {
+            _ => {},
+        }
+        socket.set_read_timeout(Some(default_time)).ok();
+        
         Ok(pile.to_vec())
     }
 
@@ -380,7 +382,7 @@ fn send_pile<T>(pile: &Vec<Card>, writer: &mut T) where T: Write {
 /// Creates a deck of cards
 fn make_deck() -> Vec<Card> {
     let mut deck: Vec<Card> = Vec::new();
-    for suit in [Hearts, Diamonds, Clubs, Spades].iter() {
+    for suit in [Hearts, Diamonds].iter() { //, Clubs, Spades].iter() {
         for i in 2..11 {
             deck.push(Card::new(Num(i), *suit));
         }
@@ -575,7 +577,6 @@ fn play_game(socket: &TcpStream) ->
     let mut human = HumanPlayer(PlayerState::new());
     let mut writer = socket.try_clone().unwrap();
     let mut reader = BufReader::new(socket);
-
     
     deal_hands(&mut deck, &mut machine, &mut human);
     
@@ -604,13 +605,9 @@ fn play_game(socket: &TcpStream) ->
         if turn % 2 == 0 {
             player = &mut machine;
             opponent = &mut human;
-            writeln!(writer, "Computer's turn!\r\n").ok();
-            writer.flush().ok();
         } else {
             player = &mut human;
             opponent = &mut machine;
-            writeln!(writer, "Your turn! Press c to play card\r\n").ok();
-            writer.flush().ok();
         }
 
         // Play a card from players hand
@@ -621,6 +618,7 @@ fn play_game(socket: &TcpStream) ->
                 return Ok(());
             }
         }
+        // Check for slap
         player.slap_check(&mut pile, socket, opponent).ok();
 
         // Determine if a player has won the game
@@ -640,10 +638,6 @@ fn main() {
 
     match listener.accept() {
         Ok((socket, _addr)) => {
-            //let mut writer = socket.try_clone().unwrap();
-            //let mut reader = BufReader::new(&socket);
-            //socket.set_read_timeout(Some(Duration::new(3, 0))).ok();
-
             //play_game(reader, writer).ok();
             play_game(&socket).ok();
         }
